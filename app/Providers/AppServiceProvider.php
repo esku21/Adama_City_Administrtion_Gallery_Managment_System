@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Gate; // CRITICAL: Added this import
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,40 +24,38 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        /**
-         * 1. Superadmin Override
-         * If a user is a superadmin, they pass every authorization check.
-         */
-        Gate::before(function (User $user, $ability) {
-            if (strtolower($user->role ?? '') === 'superadmin') {
-                return true;
+        // 1. Safe logic for Site Settings
+        if (!app()->runningInConsole()) {
+            try {
+                if (Schema::hasTable('site_settings')) {
+                    $status = DB::table('site_settings')
+                        ->where('key', 'system_status')
+                        ->value('value');
+                    
+                    View::share('systemStatus', $status ?? 'active');
+                } else {
+                    View::share('systemStatus', 'active');
+                }
+            } catch (\Exception $e) {
+                View::share('systemStatus', 'active');
             }
-        });
+        }
 
-        /**
-         * 2. Admin Gate
-         * Used by: ->middleware(['can:access-admin'])
-         */
+        // 2. DEFINE GATES (Fixes the 403 Forbidden Error)
+        
+        // This gate handles ->middleware('can:access-admin')
         Gate::define('access-admin', function (User $user) {
-            return strtolower($user->role ?? '') === 'admin';
+            return strtolower($user->role) === 'admin';
         });
 
-        /**
-         * 3. Guide Gate
-         * Used by: ->middleware(['can:access-guide'])
-         */
-        Gate::define('access-guide', function (User $user) {
-            return strtolower($user->role ?? '') === 'guide';
-        });
-
-        /**
-         * 4. Visitor Gate
-         * Used by: ->middleware(['can:access-visitor'])
-         */
+        // This gate handles ->middleware('can:access-visitor')
         Gate::define('access-visitor', function (User $user) {
-            $role = strtolower($user->role ?? '');
-            // Allows 'visitor', 'user', or even 'guest' roles if needed
-            return in_array($role, ['visitor', 'user']);
+            return in_array(strtolower($user->role), ['visitor', 'admin']);
+        });
+
+        // This gate handles ->middleware('can:access-guide')
+        Gate::define('access-guide', function (User $user) {
+            return strtolower($user->role) === 'guide' || strtolower($user->role) === 'admin';
         });
     }
 }

@@ -11,32 +11,44 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Renamed to 'feedbacks' (plural) to match Laravel's naming convention
         Schema::create('feedbacks', function (Blueprint $table) {
             $table->id();
 
-            // 1. The Visitor Link (Optional if you allow guest feedback)
+            // 1. Relationships
+            // user_id: The visitor submitting the feedback
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             
-            // 2. Identification (Necessary for the Feedback.vue display)
+            // booking_id: Optional link to a specific booking
+            $table->foreignId('booking_id')->nullable()->constrained()->onDelete('cascade');
+            
+            // hall_id: Link to a specific hall if type is 'hall'
+            $table->foreignId('hall_id')->nullable()->constrained()->onDelete('cascade');
+            
+            // 2. Identification (For guest feedback if needed)
             $table->string('name')->nullable();
             $table->string('email')->nullable();
 
-            // 3. Related IDs (Optional for specific reviews)
-            $table->foreignId('booking_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('hall_id')->nullable()->constrained()->onDelete('cascade');
-
-            // 4. Metadata & Content
+            // 3. Content & Metadata
             $table->string('type')->default('general'); // 'general' or 'hall'
             $table->string('subject')->nullable();
             $table->text('message');
-            $table->integer('rating')->default(5); // Star rating (1-5)
-            
-            // 5. Assets
-            $table->string('image_path')->nullable();
+            $table->integer('rating')->default(5); // 1 to 5 scale
 
-            // 6. Timestamps
-            // Using standard timestamps() is safer for Laravel's Eloquent
+            // 4. Sentiment Status
+            // Replaced old 'GoodFeedback'/'BadFeedback' with your new options:
+            // 'Satisfaction', 'Unsatisfactory', 'Neutral'
+            $table->string('sentiment_status', 50)->nullable()->default('Neutral');
+            
+            // 5. Assets & Categorization
+            $table->string('image_path')->nullable();
+            $table->string('topic_tag')->nullable(); // 'Staff', 'Facilities', 'Pricing', etc.
+
+            // 6. Admin Audit Trail
+            // verified_by: The Admin/Staff who reviewed the feedback
+            $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->text('resolution_notes')->nullable();
+
+            // 7. Timestamps
             $table->timestamps(); 
         });
     }

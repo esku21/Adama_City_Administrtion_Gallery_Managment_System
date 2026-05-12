@@ -2,6 +2,9 @@
 import GuideLayout from "@/Layouts/GuideLayout.vue";
 import { useForm, Head } from "@inertiajs/vue3";
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);
@@ -31,123 +34,156 @@ const updatePassword = () => {
 </script>
 
 <template>
-    <Head title="Account Settings" />
+    <Head :title="t('settings.title')" />
 
     <GuideLayout>
-        <div class="max-w-4xl mx-auto">
-            <div class="mb-10">
+        <div class="max-w-2xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <!-- HEADER -->
+            <div class="mb-6">
                 <h2
-                    class="text-3xl font-black text-zinc-900 uppercase tracking-tighter italic"
+                    class="text-2xl sm:text-3xl font-black text-zinc-900 uppercase tracking-tight"
                 >
-                    Security
+                    {{ t("settings.security") }}
                     <span
-                        class="text-emerald-500 underline decoration-4 underline-offset-8"
-                        >Settings</span
+                        class="text-emerald-500 underline decoration-2 underline-offset-4"
                     >
+                        {{ t("settings.settings") }}
+                    </span>
                 </h2>
+
                 <p
-                    class="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.3em] mt-3"
+                    class="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1"
                 >
-                    Manage your access credentials • Adama City Hall
+                    {{ t("settings.subtitle") }} • Adama City Hall
                 </p>
             </div>
 
+            <!-- CARD -->
             <div
-                class="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden p-10"
+                class="bg-white rounded-2xl border border-zinc-100 shadow-md overflow-hidden p-6 sm:p-8"
             >
-                <header class="mb-8">
+                <header class="mb-6 border-b border-zinc-50 pb-4">
                     <h3 class="text-lg font-bold text-zinc-900">
-                        Update Password
+                        {{ t("settings.update_password") }}
                     </h3>
-                    <p class="text-sm text-zinc-500 mt-1">
-                        Ensure your account is using a long, random password to
-                        stay secure.
+                    <p class="text-xs text-zinc-500 mt-1">
+                        {{ t("settings.password_desc") }}
                     </p>
                 </header>
 
-                <form
-                    @submit.prevent="updatePassword"
-                    class="space-y-6 max-w-xl"
-                >
+                <!-- FORM -->
+                <form @submit.prevent="updatePassword" class="space-y-4">
+                    <!-- CURRENT PASSWORD -->
                     <div>
                         <label
-                            class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1"
-                            >Current Password</label
+                            class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 ml-1"
                         >
+                            {{ t("settings.current_password") }}
+                        </label>
+
                         <input
                             ref="currentPasswordInput"
                             v-model="form.current_password"
                             type="password"
-                            class="w-full bg-zinc-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
+                            class="w-full bg-zinc-50 border border-zinc-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
                             autocomplete="current-password"
+                            placeholder="••••••••"
                         />
+
                         <p
                             v-if="form.errors.current_password"
-                            class="text-rose-500 text-xs mt-2 ml-1 font-bold"
+                            class="text-rose-500 text-[10px] mt-1.5 ml-1 font-bold italic"
                         >
                             {{ form.errors.current_password }}
                         </p>
                     </div>
 
-                    <div>
-                        <label
-                            class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1"
-                            >New Password</label
-                        >
-                        <input
-                            ref="passwordInput"
-                            v-model="form.password"
-                            type="password"
-                            class="w-full bg-zinc-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
-                            autocomplete="new-password"
-                        />
-                        <p
-                            v-if="form.errors.password"
-                            class="text-rose-500 text-xs mt-2 ml-1 font-bold"
-                        >
-                            {{ form.errors.password }}
-                        </p>
+                    <!-- NEW PASSWORD -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 ml-1"
+                            >
+                                {{ t("settings.new_password") }}
+                            </label>
+
+                            <input
+                                ref="passwordInput"
+                                v-model="form.password"
+                                type="password"
+                                class="w-full bg-zinc-50 border border-zinc-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
+                                autocomplete="new-password"
+                                placeholder="••••••••"
+                            />
+
+                            <p
+                                v-if="form.errors.password"
+                                class="text-rose-500 text-[10px] mt-1.5 ml-1 font-bold italic"
+                            >
+                                {{ form.errors.password }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 ml-1"
+                            >
+                                {{ t("settings.confirm_password") }}
+                            </label>
+
+                            <input
+                                v-model="form.password_confirmation"
+                                type="password"
+                                class="w-full bg-zinc-50 border border-zinc-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
+                                autocomplete="new-password"
+                                placeholder="••••••••"
+                            />
+                        </div>
                     </div>
 
-                    <div>
-                        <label
-                            class="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1"
-                            >Confirm Password</label
-                        >
-                        <input
-                            v-model="form.password_confirmation"
-                            type="password"
-                            class="w-full bg-zinc-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
-                            autocomplete="new-password"
-                        />
-                        <p
-                            v-if="form.errors.password_confirmation"
-                            class="text-rose-500 text-xs mt-2 ml-1 font-bold"
-                        >
-                            {{ form.errors.password_confirmation }}
-                        </p>
-                    </div>
-
+                    <!-- ACTION -->
                     <div class="flex items-center gap-4 pt-4">
                         <button
                             type="submit"
                             :disabled="form.processing"
-                            class="px-8 py-4 bg-zinc-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all disabled:opacity-50"
+                            class="px-6 py-3 bg-zinc-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-50"
                         >
-                            Save Changes
+                            {{
+                                form.processing
+                                    ? t("settings.processing")
+                                    : t("settings.save")
+                            }}
                         </button>
 
                         <Transition
-                            enter-from-class="opacity-0"
+                            enter-from-class="opacity-0 translate-x-2"
                             leave-to-class="opacity-0"
-                            class="transition ease-in-out"
+                            class="transition duration-300"
                         >
-                            <p
+                            <div
                                 v-if="form.recentlySuccessful"
-                                class="text-sm text-emerald-600 font-bold italic"
+                                class="flex items-center gap-2 text-emerald-600"
                             >
-                                Saved successfully.
-                            </p>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="3"
+                                        d="M5 13l4 4L19 7"
+                                    />
+                                </svg>
+                                <span
+                                    class="text-xs font-bold uppercase tracking-tight"
+                                >
+                                    {{ t("settings.saved") }}
+                                </span>
+                            </div>
                         </Transition>
                     </div>
                 </form>

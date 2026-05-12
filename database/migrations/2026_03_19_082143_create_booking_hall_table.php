@@ -10,10 +10,8 @@ return new class extends Migration
     {
         Schema::create('booking_hall', function (Blueprint $table) {
             $table->id();
-            // This links to the bookings table
             $table->foreignId('booking_id')->constrained()->onDelete('cascade');
-            // This links to the halls table
-            $table->foreignId('hall_id')->constrained()->onDelete('cascade');
+            $table->foreignId('hall_id')->constrained('halls')->onDelete('cascade');
             $table->timestamps();
         });
     }

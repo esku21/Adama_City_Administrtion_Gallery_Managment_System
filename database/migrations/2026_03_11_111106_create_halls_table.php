@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * Note: Capacity has been removed as per requirements.
+     * Note: Capacity has been removed as per project requirements.
      */
     public function up(): void
     {
@@ -27,8 +27,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // We disable foreign key checks to prevent #1701 error when 
-        // dropping 'halls' while 'booking_hall' still exists.
+        // Disable foreign key checks to prevent #1701 error when 
+        // dropping 'halls' while 'booking_hall' or other relations exist.
         Schema::disableForeignKeyConstraints();
         Schema::dropIfExists('halls');
         Schema::enableForeignKeyConstraints();

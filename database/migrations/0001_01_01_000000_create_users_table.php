@@ -17,15 +17,20 @@ return new class extends Migration
             // Name Fields
             $table->string('firstName');
             $table->string('lastName');
-            // Virtual column to help with search/display
+            // Virtual column for search/display
             $table->string('name')->virtualAs('concat(firstName, " ", lastName)'); 
             
             // Authentication & Contact
-            // UNIQUE() is critical here to prevent duplicate email entries
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('phone_no')->nullable();
             $table->string('password');
+            
+            /**
+             * ADDED: Profile Photo Column
+             * We use 2048 to accommodate long cloud storage URLs if needed later.
+             */
+            $table->string('profile_photo_path', 2048)->nullable();
             
             // Visitor Specific Fields
             $table->string('visitorType')->default('Individual'); 

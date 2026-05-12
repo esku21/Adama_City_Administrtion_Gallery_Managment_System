@@ -11,6 +11,9 @@ use Inertia\Inertia;
 
 class GuideController extends Controller
 {
+    /**
+     * Display the Guide Dashboard with Hall-specific stats.
+     */
     public function index(Request $request)
     {
         $guide = Auth::guard('guide')->user();
@@ -19,50 +22,49 @@ class GuideController extends Controller
             return redirect()->route('guide.login');
         }
 
-        // Current System Date (2026-03-23)
         $today = Carbon::today()->toDateString();
         $selectedDate = $request->input('date', $today);
 
-        // Main Query: Filter by the Hall ID assigned to the Guide
-        // IMPORTANT: Ensure your 'booking_hall' pivot table has these links!
-        $bookingsQuery = Booking::whereHas('halls', function ($query) use ($guide) {
-            $query->where('halls.id', $guide->hall_id);
-        });
+        $timeMapping = [
+            'm1' => '09:00 AM - 09:30 AM',
+            'm2' => '10:00 AM - 10:30 AM',
+            'm3' => '11:00 AM - 11:30 AM',
+            'a1' => '02:00 PM - 02:30 PM',
+            'a2' => '03:00 PM - 03:30 PM',
+            'a3' => '04:00 PM - 04:30 PM',
+        ];
 
-        // 1. Stats Calculation (Strictly for today/selected date)
+        // Base Query: Restricted to this guide's assigned hall
+        $hallBookings = Booking::where('hall_id', $guide->hall_id);
+
         $stats = [
-            'total_bookings' => (clone $bookingsQuery)->count(),
-            
-            'pending_today'  => (clone $bookingsQuery)
+            'total_bookings' => (clone $hallBookings)->count(),
+            'pending_today'  => (clone $hallBookings)
                                 ->whereDate('booking_date', $selectedDate)
-                                ->whereIn('status', ['pending', 'Approved', 'approved'])
+                                ->whereIn('status', ['pending', 'approved', 'Approved'])
                                 ->count(),
-                                    
-            'arrived_today'  => (clone $bookingsQuery)
+            'arrived_today'  => (clone $hallBookings)
                                 ->whereDate('booking_date', $selectedDate)
-                                ->whereIn('status', ['Arrived', 'arrived'])
+                                ->where('status', 'Arrived')
                                 ->count(),
         ];
 
-        // 2. Table Data Fetching
-        // We widen the range to Yesterday -> Tomorrow so your test data shows up
-        $bookings = (clone $bookingsQuery)
-            ->with(['halls']) 
-            ->whereBetween('booking_date', [
-                Carbon::yesterday()->toDateString(), 
-                Carbon::tomorrow()->toDateString()
-            ])
-            ->latest()
+        $bookings = (clone $hallBookings)
+            ->with(['hall']) 
+            ->whereDate('booking_date', '>=', $today) 
+            ->orderBy('booking_date', 'asc')
             ->get()
-            ->map(function ($booking) {
+            ->map(function ($booking) use ($timeMapping) {
                 return [
                     'id'            => $booking->id,
                     'visitor_name'  => $booking->visitor_name ?? 'Unnamed Visitor',
                     'visitor_type'  => $booking->visitor_type,
                     'status'        => $booking->status ?? 'pending',
-                    // These use the getHallNamesAttribute and getReadableSlotAttribute from your Model
-                    'hall_names'    => $booking->hall_names,
-                    'readable_slot' => $booking->readable_slot,
+                    'booking_date'  => $booking->booking_date instanceof Carbon 
+                                        ? $booking->booking_date->toDateString() 
+                                        : $booking->booking_date,
+                    'hall_names'    => $booking->hall->name ?? 'Station Hall', 
+                    'readable_slot' => $timeMapping[strtolower($booking->slot_id)] ?? ($booking->slot_id ?? 'N/A'), 
                 ];
             });
 
@@ -75,31 +77,44 @@ class GuideController extends Controller
     }
 
     /**
-     * Updates status from the Dashboard buttons
+     * MISSING METHOD FIXED: Opens the QR Scanner View
+     */
+    public function scanner()
+    {
+        $guide = Auth::guard('guide')->user();
+        return Inertia::render('Guide/Scanner', [
+            'hallName' => $guide->hall->name ?? 'Station'
+        ]);
+    }
+
+    /**
+     * Updates visitor status via dashboard buttons
      */
     public function updateStatus(Request $request, $id)
     {
-        $request->validate([
-            'status' => 'required|string|in:Arrived,Off-Schedule,No-Show,Late,Missed'
-        ]);
+        $request->validate(['status' => 'required|string']);
 
         try {
-            $booking = Booking::findOrFail($id);
+            $guide = Auth::guard('guide')->user();
+            $booking = Booking::where('hall_id', $guide->hall_id)->findOrFail($id);
             
-            // Map frontend button labels to database status values
             $statusMapping = [
-                'Late'   => 'Off-Schedule',
-                'Missed' => 'No-Show'
+                'Arrived' => 'Arrived',
+                'Late'    => 'Off-Schedule',
+                'Missed'  => 'No-Show'
             ];
             
             $newStatus = $statusMapping[$request->status] ?? $request->status;
 
-            $booking->update(['status' => $newStatus]);
+            $booking->update([
+                'status' => $newStatus,
+                'attended_at' => now(), 
+            ]);
 
-            return back()->with('message', 'Status updated to ' . $newStatus);
+            return back()->with('success', "Visitor marked as $newStatus");
             
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Could not update status.']);
+            return back()->withErrors(['error' => 'Update failed: ' . $e->getMessage()]);
         }
     }
 }

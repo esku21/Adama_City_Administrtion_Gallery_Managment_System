@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hall extends Model
@@ -23,21 +22,36 @@ class Hall extends Model
     ];
 
     /**
-     * Relationship: The bookings that belong to the hall.
+     * Relationship: The bookings associated with this hall.
      */
-    public function bookings(): BelongsToMany
+    public function bookings(): HasMany
     {
-        return $this->belongsToMany(Booking::class, 'booking_hall')
-                    ->withTimestamps();
+        return $this->hasMany(Booking::class, 'hall_id');
     }
 
     /**
-     * Relationship: Each hall has its own guides.
-     * Updated to point to the Guide model specifically.
+     * Relationship: The Users (Guides) assigned to this hall.
+     * Since your 'User' model has 'hall_id', we fetch users with the 'guide' role.
      */
     public function guides(): HasMany
     {
-        // This links to your 'guides' table using the 'hall_id' column
-        return $this->hasMany(Guide::class, 'hall_id');
+        return $this->hasMany(User::class, 'hall_id')->where('role', 'guide');
+    }
+
+    /**
+     * Relationship: Feedbacks specifically for this hall.
+     * This is what allows: Auth::user()->hall->feedbacks to work!
+     */
+    public function feedbacks(): HasMany
+    {
+        return $this->hasMany(Feedback::class, 'hall_id');
+    }
+
+    /**
+     * Scope: Only return halls currently available for booking.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

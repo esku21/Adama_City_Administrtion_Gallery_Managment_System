@@ -20,10 +20,8 @@ const form = useForm({
 
 const previewUrl = ref(null);
 
-// Character counter logic
 const messageLength = computed(() => form.message.trim().length);
 
-// This frontend check mirrors the backend "gibberish" check
 const isMessageValid = computed(() => {
     const hasVowels = /[aeiouyAEIOUY]/.test(form.message);
     const hasLetters = /[a-zA-Z]/.test(form.message);
@@ -47,7 +45,6 @@ const handleImageChange = (e) => {
 };
 
 const submitFeedback = () => {
-    // Prevent submission if frontend check fails
     if (!isMessageValid.value) {
         Swal.fire(
             "Invalid Message",
@@ -70,14 +67,10 @@ const submitFeedback = () => {
             previewUrl.value = null;
         },
         onError: (errors) => {
-            // CRITICAL: This displays the 'unread text' error from Laravel
             let errorMsg = "Please check the form for errors.";
 
-            if (errors.message) {
-                errorMsg = errors.message;
-            } else if (errors.booking_id) {
-                errorMsg = errors.booking_id;
-            }
+            if (errors.message) errorMsg = errors.message;
+            else if (errors.booking_id) errorMsg = errors.booking_id;
 
             Swal.fire({
                 title: "Submission Failed",
@@ -94,45 +87,62 @@ const submitFeedback = () => {
     <Head title="Submit Feedback" />
 
     <VisitorLayout>
-        <template #header>Visit Feedback</template>
-
-        <div class="max-w-4xl mx-auto pb-20 animate-in">
+        <template #header>
             <div
-                class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden"
+                class="flex flex-col md:flex-row md:items-center md:justify-between gap-2"
             >
+                <h1 class="text-lg md:text-xl font-extrabold text-slate-800">
+                    Visit Feedback
+                </h1>
+                <span class="text-xs text-slate-400"
+                    >Share your experience</span
+                >
+            </div>
+        </template>
+
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+            <div
+                class="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden"
+            >
+                <!-- Header -->
                 <div
-                    class="p-8 bg-indigo-50/50 border-b border-indigo-100 flex justify-between items-center"
+                    class="p-6 md:p-8 bg-gradient-to-r from-indigo-50 to-white border-b flex flex-col md:flex-row md:items-center md:justify-between gap-4"
                 >
                     <div>
                         <h3
-                            class="font-black text-indigo-900 uppercase text-sm tracking-tight"
+                            class="font-bold text-indigo-900 text-sm md:text-base"
                         >
                             Reviewing Visit #{{ booking.id }}
                         </h3>
-                        <p class="text-xs text-indigo-600 font-bold mt-1">
-                            {{ booking.booking_date }} —
+                        <p class="text-xs text-indigo-600 mt-1">
+                            {{ booking.booking_date }} •
                             {{ booking.hall_names }}
                         </p>
                     </div>
                     <span
-                        class="px-4 py-1 bg-white rounded-full text-[10px] font-black text-indigo-600 uppercase shadow-sm"
+                        class="px-3 py-1 bg-white rounded-full text-xs font-semibold text-indigo-600 shadow"
                     >
                         Verified Visit
                     </span>
                 </div>
 
-                <form @submit.prevent="submitFeedback" class="p-10 space-y-10">
-                    <div class="space-y-4 text-center">
+                <!-- Form -->
+                <form
+                    @submit.prevent="submitFeedback"
+                    class="p-6 md:p-10 space-y-8"
+                >
+                    <!-- Rating -->
+                    <div class="text-center space-y-3">
                         <label
-                            class="block text-[10px] font-black uppercase text-slate-400 tracking-widest"
+                            class="text-xs font-semibold text-slate-500 uppercase tracking-wide"
                         >
-                            How was your overall experience?
+                            Rate your experience
                         </label>
                         <div class="flex justify-center gap-2">
                             <label
                                 v-for="star in 5"
                                 :key="star"
-                                class="cursor-pointer group"
+                                class="cursor-pointer"
                             >
                                 <input
                                     type="radio"
@@ -143,78 +153,67 @@ const submitFeedback = () => {
                                 <span
                                     :class="
                                         form.rating >= star
-                                            ? 'text-amber-400 scale-110'
-                                            : 'text-slate-200'
+                                            ? 'text-yellow-400 scale-110'
+                                            : 'text-slate-300'
                                     "
-                                    class="text-5xl transition-all duration-200 group-hover:scale-125 inline-block"
+                                    class="text-3xl md:text-4xl transition"
+                                    >★</span
                                 >
-                                    ★
-                                </span>
                             </label>
                         </div>
                     </div>
 
+                    <!-- Message -->
                     <div class="space-y-2">
-                        <div class="flex justify-between items-end">
+                        <div class="flex justify-between">
                             <label
-                                for="message"
-                                class="text-[10px] font-black uppercase text-slate-400 tracking-widest"
+                                class="text-xs font-semibold text-slate-500 uppercase"
+                                >Your Comment</label
                             >
-                                Your Comments
-                            </label>
                             <span
                                 :class="
                                     messageLength < 10
                                         ? 'text-red-400'
                                         : 'text-green-500'
                                 "
-                                class="text-[9px] font-bold uppercase"
+                                class="text-xs"
                             >
-                                {{ messageLength }} / 10 characters min
+                                {{ messageLength }}/10
                             </span>
                         </div>
 
                         <textarea
-                            id="message"
                             v-model="form.message"
                             rows="5"
-                            :class="
-                                form.errors.message
-                                    ? 'ring-2 ring-red-500 border-red-500'
-                                    : 'border-none'
-                            "
-                            class="w-full bg-slate-50 rounded-3xl p-6 font-medium focus:ring-2 focus:ring-indigo-500 transition-all"
-                            placeholder="Please provide clear details about your visit..."
+                            placeholder="Describe your experience clearly..."
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                         ></textarea>
 
                         <p
                             v-if="form.errors.message"
-                            class="text-red-500 text-[10px] font-black uppercase mt-1 flex items-center gap-1"
+                            class="text-red-500 text-xs"
                         >
-                            <span>⚠️</span> {{ form.errors.message }}
+                            {{ form.errors.message }}
                         </p>
                     </div>
 
-                    <div class="space-y-4">
+                    <!-- Image Upload -->
+                    <div class="space-y-3">
                         <label
-                            class="text-[10px] font-black uppercase text-slate-400 tracking-widest"
+                            class="text-xs font-semibold text-slate-500 uppercase"
+                            >Upload Image (optional)</label
                         >
-                            Upload a Photo (Optional)
-                        </label>
                         <input
                             type="file"
                             @change="handleImageChange"
                             accept="image/*"
-                            class="block w-full text-xs text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all"
+                            class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"
                         />
 
-                        <div
-                            v-if="previewUrl"
-                            class="mt-4 relative inline-block"
-                        >
+                        <div v-if="previewUrl" class="relative w-fit">
                             <img
                                 :src="previewUrl"
-                                class="h-48 w-72 object-cover rounded-[2rem] border-4 border-white shadow-lg"
+                                class="h-40 w-64 object-cover rounded-xl shadow"
                             />
                             <button
                                 type="button"
@@ -222,39 +221,28 @@ const submitFeedback = () => {
                                     previewUrl = null;
                                     form.image = null;
                                 "
-                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-2 shadow-lg hover:bg-red-600"
+                                class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-4 w-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
+                                ✕
                             </button>
                         </div>
                     </div>
 
+                    <!-- Actions -->
                     <div
-                        class="flex items-center justify-between pt-8 border-t border-slate-50"
+                        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t"
                     >
                         <Link
                             :href="route('visitor.history')"
-                            class="text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 tracking-widest"
+                            class="text-sm text-slate-500 hover:text-slate-700"
                         >
-                            Back to History
+                            ← Back to History
                         </Link>
+
                         <button
                             type="submit"
                             :disabled="form.processing || !isMessageValid"
-                            class="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold shadow hover:bg-indigo-700 disabled:opacity-50"
                         >
                             {{
                                 form.processing

@@ -4,9 +4,11 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
+use Inertia\Inertia;
 
 class CheckSystemStatus
 {
@@ -15,34 +17,46 @@ class CheckSystemStatus
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. ALWAYS PASS: If the user is an Admin, they bypass everything.
-        // This ensures you never get locked out of your own dashboard.
-        if (Auth::check() && Auth::user()->role === 'admin') {
+        // 1. SAFETY: Skip if console or table missing
+        if (app()->runningInConsole() || !Schema::hasTable('site_settings')) {
             return $next($request);
         }
 
-        // 2. Fetch system status from the database.
-        $settings = Setting::first();
-        $status = $settings->system_status ?? 'active';
+        // 2. BYPASS LIST: Routes that MUST always work
+        // Added 'admin/dashboard' to bypass check if user is already an admin
+        $isBypassRoute = $request->is('login', 'logout', 'maintenance', 'force-admin-login', 'fix-admin') || 
+                         $request->routeIs('login', 'logout', 'maintenance.page');
 
-        // 3. PASS: If the system is active, proceed normally.
-        if ($status === 'active') {
+        if ($isBypassRoute) {
             return $next($request);
         }
 
-        // 4. PASS: Critical routes that must ALWAYS be accessible.
-        // We include login/logout so you can sign in to become an admin,
-        // and the maintenance page so visitors can actually see the message.
-        if ($request->is('login') || 
-            $request->is('logout') || 
-            $request->is('api/*') || // Optional: allows API calls if needed
-            $request->routeIs('login') || 
-            $request->routeIs('logout') || 
-            $request->routeIs('maintenance.page')) {
-            return $next($request);
+        // 3. ADMIN BYPASS (CRITICAL FIX)
+        // We check ID 2 (from your screenshot) and the 'admin' role.
+        // This MUST happen before checking the system status.
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user->id == 2 || strtolower($user->role ?? '') === 'admin' || $user->email === 'admin@acagms.com') {
+                return $next($request);
+            }
         }
 
-        // 5. BLOCK: Everyone else is redirected to the maintenance page.
-        return redirect()->route('maintenance.page');
+        // 4. FETCH SYSTEM STATUS
+        $status = DB::table('site_settings')
+            ->where('key', 'system_status')
+            ->value('value') ?? 'active';
+
+        // 5. IF OFFLINE: Handle Inertia vs Standard Requests
+        if ($status !== 'active') {
+            // If it's an Inertia request, we must return a 403 or 503 error 
+            // so the frontend doesn't crash with "null component"
+            if ($request->header('X-Inertia')) {
+                abort(503, 'System Offline');
+            }
+
+            return redirect()->route('maintenance.page');
+        }
+
+        return $next($request);
     }
 }

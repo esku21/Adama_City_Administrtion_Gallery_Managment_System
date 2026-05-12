@@ -2,6 +2,9 @@
 import GuideLayout from "@/Layouts/GuideLayout.vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
     hallName: String,
@@ -12,43 +15,32 @@ const props = defineProps({
     },
 });
 
-/**
- * Normalizes the bookings data.
- */
+// Ensures we can handle both paginated data and simple arrays
 const bookingList = computed(() => {
-    if (Array.isArray(props.bookings)) {
-        return props.bookings;
-    }
+    if (Array.isArray(props.bookings)) return props.bookings;
     return props.bookings?.data ?? [];
 });
 
-/**
- * Sends the status update to the GuideController
- */
 const updateStatus = (id, newStatus) => {
     if (!id) return;
 
-    // We use a confirmation dialog for safety
-    if (confirm(`Mark this visitor as ${newStatus}?`)) {
+    // Translation-ready confirmation dialog
+    if (confirm(t("guide_dashboard.confirm_status", { status: newStatus }))) {
         router.patch(
             route("guide.bookings.update", id),
             { status: newStatus },
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    // Success logic here if needed
+                    // Success logic can be added here (e.g., Toast notifications)
                 },
             },
         );
     }
 };
 
-/**
- * Status Badge Styling
- */
 const getStatusClass = (status) => {
-    const s = status?.toLowerCase();
-    switch (s) {
+    switch (status?.toLowerCase()) {
         case "arrived":
             return "bg-green-100 text-green-700 border-green-200";
         case "off-schedule":
@@ -67,91 +59,171 @@ const getStatusClass = (status) => {
 </script>
 
 <template>
-    <Head title="Guide Dashboard" />
+    <Head :title="$t('guide_nav.management')" />
 
     <GuideLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="font-bold text-xl text-gray-800 leading-tight">
-                    {{ hallName || "Station" }} — Monitor Portal
+            <div
+                class="flex flex-col sm:flex-row items-center justify-between gap-4"
+            >
+                <h2
+                    class="font-bold text-2xl sm:text-3xl text-gray-800 leading-tight"
+                >
+                    {{ hallName || $t("guide_nav.no_hall") }} —
+                    {{ $t("guide_dashboard.monitor_portal") }}
                 </h2>
                 <Link
                     :href="route('guide.scanner')"
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm flex items-center gap-2"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center gap-2 active:scale-95"
                 >
-                    <span>📷</span> Open Scanner
+                    <span>📷</span> {{ $t("guide_dashboard.open_scanner") }}
                 </Link>
             </div>
         </template>
 
         <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div
-                        class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                        class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
                     >
-                        <p
-                            class="text-xs font-black text-gray-400 uppercase tracking-widest"
+                        <div
+                            class="bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-xl text-white relative overflow-hidden h-full"
                         >
-                            Total Hall Bookings
-                        </p>
-                        <p class="text-3xl font-bold text-gray-900 mt-1">
-                            {{ stats?.total_bookings ?? 0 }}
-                        </p>
+                            <div class="relative z-10">
+                                <p
+                                    class="text-xs font-black uppercase tracking-tighter opacity-80"
+                                >
+                                    {{ $t("guide_dashboard.total_bookings") }}
+                                </p>
+                                <p class="text-4xl font-black mt-2">
+                                    {{ stats?.total_bookings ?? 0 }}
+                                </p>
+                                <p
+                                    class="text-[10px] mt-2 font-medium opacity-70"
+                                >
+                                    {{ $t("guide_dashboard.total_desc") }}
+                                </p>
+                            </div>
+                            <span
+                                class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"
+                                >📊</span
+                            >
+                        </div>
                     </div>
 
                     <div
-                        class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                        class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
                     >
-                        <p
-                            class="text-xs font-black text-amber-500 uppercase tracking-widest"
+                        <div
+                            class="bg-gradient-to-br from-orange-400 to-orange-600 p-6 rounded-xl text-white relative overflow-hidden h-full"
                         >
-                            Pending Today
-                        </p>
-                        <p class="text-3xl font-bold text-gray-900 mt-1">
-                            {{ stats?.pending_today ?? 0 }}
-                        </p>
+                            <div class="relative z-10">
+                                <p
+                                    class="text-xs font-black uppercase tracking-tighter opacity-80"
+                                >
+                                    {{ $t("guide_dashboard.pending_today") }}
+                                </p>
+                                <p class="text-4xl font-black mt-2">
+                                    {{ stats?.pending_today ?? 0 }}
+                                </p>
+                                <p
+                                    class="text-[10px] mt-2 font-medium opacity-70"
+                                >
+                                    {{ $t("guide_dashboard.pending_desc") }}
+                                </p>
+                            </div>
+                            <span
+                                class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"
+                                >⏳</span
+                            >
+                        </div>
                     </div>
 
                     <div
-                        class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                        class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
                     >
-                        <p
-                            class="text-xs font-black text-green-500 uppercase tracking-widest"
+                        <div
+                            class="bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 rounded-xl text-white relative overflow-hidden h-full"
                         >
-                            Already Arrived
-                        </p>
-                        <p class="text-3xl font-bold text-gray-900 mt-1">
-                            {{ stats?.arrived_today ?? 0 }}
-                        </p>
+                            <div class="relative z-10">
+                                <p
+                                    class="text-xs font-black uppercase tracking-tighter opacity-80"
+                                >
+                                    {{ $t("guide_dashboard.arrived_today") }}
+                                </p>
+                                <p class="text-4xl font-black mt-2">
+                                    {{ stats?.arrived_today ?? 0 }}
+                                </p>
+                                <p
+                                    class="text-[10px] mt-2 font-medium opacity-70"
+                                >
+                                    {{ $t("guide_dashboard.arrived_desc") }}
+                                </p>
+                            </div>
+                            <span
+                                class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"
+                                >✅</span
+                            >
+                        </div>
                     </div>
                 </div>
 
                 <div
-                    class="bg-white overflow-hidden shadow-sm sm:rounded-2xl border border-gray-100"
+                    class="bg-white shadow-xl sm:rounded-3xl border border-gray-100 overflow-hidden"
                 >
-                    <div class="p-6 text-gray-900">
-                        <h3 class="font-bold text-lg mb-4">Visitor Log</h3>
+                    <div class="p-8">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3
+                                class="font-black text-xl text-gray-800 uppercase tracking-tight"
+                            >
+                                {{ $t("guide_dashboard.live_log") }}
+                            </h3>
+                            <span
+                                class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full border border-indigo-100"
+                            >
+                                {{ $t("guide_dashboard.live_monitoring") }}
+                            </span>
+                        </div>
 
                         <div class="overflow-x-auto">
                             <table
-                                class="w-full text-left border-separate border-spacing-y-2"
+                                class="w-full text-left border-separate border-spacing-y-3"
                             >
                                 <thead>
                                     <tr
-                                        class="text-gray-400 text-xs uppercase font-black tracking-widest"
+                                        class="text-gray-400 text-[10px] uppercase font-black tracking-widest"
                                     >
-                                        <th class="px-4 py-3">
-                                            Visitor Details
+                                        <th class="px-6 py-3">
+                                            {{
+                                                $t(
+                                                    "guide_dashboard.table_visitor",
+                                                )
+                                            }}
                                         </th>
-                                        <th class="px-4 py-3 text-center">
-                                            Slot
+                                        <th class="px-6 py-3 text-center">
+                                            {{
+                                                $t("guide_dashboard.table_type")
+                                            }}
                                         </th>
-                                        <th class="px-4 py-3 text-center">
-                                            Status
+                                        <th class="px-6 py-3 text-center">
+                                            {{
+                                                $t("guide_dashboard.table_slot")
+                                            }}
                                         </th>
-                                        <th class="px-4 py-3 text-right">
-                                            Actions
+                                        <th class="px-6 py-3 text-center">
+                                            {{
+                                                $t(
+                                                    "guide_dashboard.table_status",
+                                                )
+                                            }}
+                                        </th>
+                                        <th class="px-6 py-3 text-right">
+                                            {{
+                                                $t(
+                                                    "guide_dashboard.table_actions",
+                                                )
+                                            }}
                                         </th>
                                     </tr>
                                 </thead>
@@ -159,116 +231,89 @@ const getStatusClass = (status) => {
                                     <tr
                                         v-for="booking in bookingList"
                                         :key="booking.id"
-                                        class="bg-gray-50 hover:bg-gray-100 transition-colors group"
+                                        class="bg-gray-50 hover:bg-gray-100 transition-colors"
                                     >
-                                        <td class="px-4 py-4">
+                                        <td class="px-6 py-4 rounded-l-2xl">
                                             <div
-                                                class="font-bold text-gray-800"
+                                                class="font-bold text-gray-900"
                                             >
                                                 {{
-                                                    booking.visitor_name ||
-                                                    "Unnamed Visitor"
+                                                    booking.user?.name ||
+                                                    "Visitor"
                                                 }}
                                             </div>
-                                            <div
-                                                class="text-[10px] text-gray-500 font-medium uppercase mt-0.5"
-                                            >
-                                                {{
-                                                    booking.hall_names ||
-                                                    "General"
-                                                }}
-                                                •
-                                                {{
-                                                    booking.visitor_type ||
-                                                    "Standard"
-                                                }}
+                                            <div class="text-xs text-gray-500">
+                                                {{ booking.user?.email }}
                                             </div>
                                         </td>
-                                        <td class="px-4 py-4 text-center">
+                                        <td class="px-6 py-4 text-center">
                                             <span
-                                                class="bg-white border border-gray-200 px-2 py-1 rounded text-xs font-bold shadow-sm"
+                                                class="text-xs font-medium px-2 py-1 bg-white border rounded-lg text-gray-600"
                                             >
-                                                {{
-                                                    booking.readable_slot ||
-                                                    "N/A"
-                                                }}
+                                                {{ booking.visitor_type }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-4 text-center">
+                                        <td
+                                            class="px-6 py-4 text-center text-sm font-bold text-gray-600"
+                                        >
+                                            {{ booking.visit_slot }}
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
                                             <span
                                                 :class="
                                                     getStatusClass(
                                                         booking.status,
                                                     )
                                                 "
-                                                class="px-3 py-1 rounded-full text-[10px] font-black uppercase border"
+                                                class="px-3 py-1 rounded-full text-[10px] font-black border uppercase"
                                             >
                                                 {{ booking.status }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-4 text-right">
-                                            <div
+                                        <td
+                                            class="px-6 py-4 text-right rounded-r-2xl space-x-2"
+                                        >
+                                            <button
                                                 v-if="
-                                                    [
-                                                        'pending',
-                                                        'approved',
-                                                        'Approved',
-                                                    ].includes(booking.status)
+                                                    booking.status !== 'arrived'
                                                 "
-                                                class="flex justify-end gap-2"
+                                                @click="
+                                                    updateStatus(
+                                                        booking.id,
+                                                        'arrived',
+                                                    )
+                                                "
+                                                class="text-[10px] font-bold bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors"
                                             >
-                                                <button
-                                                    @click="
-                                                        updateStatus(
-                                                            booking.id,
-                                                            'Arrived',
-                                                        )
-                                                    "
-                                                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all active:scale-95"
-                                                >
-                                                    Arrived
-                                                </button>
-
-                                                <button
-                                                    @click="
-                                                        updateStatus(
-                                                            booking.id,
-                                                            'Late',
-                                                        )
-                                                    "
-                                                    class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all active:scale-95"
-                                                >
-                                                    Late
-                                                </button>
-
-                                                <button
-                                                    @click="
-                                                        updateStatus(
-                                                            booking.id,
-                                                            'Missed',
-                                                        )
-                                                    "
-                                                    class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all active:scale-95"
-                                                >
-                                                    Missed
-                                                </button>
-                                            </div>
-                                            <div
-                                                v-else
-                                                class="text-xs text-gray-400 italic"
+                                                {{ $t("Arrived") }}
+                                            </button>
+                                            <button
+                                                v-if="
+                                                    booking.status ===
+                                                        'pending' ||
+                                                    booking.status ===
+                                                        'approved'
+                                                "
+                                                @click="
+                                                    updateStatus(
+                                                        booking.id,
+                                                        'no-show',
+                                                    )
+                                                "
+                                                class="text-[10px] font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
                                             >
-                                                Marked
-                                            </div>
+                                                {{ $t("NoShow") }}
+                                            </button>
                                         </td>
                                     </tr>
-
                                     <tr v-if="bookingList.length === 0">
                                         <td
-                                            colspan="4"
-                                            class="px-4 py-20 text-center text-gray-400 font-medium"
+                                            colspan="5"
+                                            class="px-6 py-10 text-center text-gray-400 italic"
                                         >
-                                            No bookings found for your station
-                                            today.
+                                            {{
+                                                $t("guide_dashboard.empty_log")
+                                            }}
                                         </td>
                                     </tr>
                                 </tbody>

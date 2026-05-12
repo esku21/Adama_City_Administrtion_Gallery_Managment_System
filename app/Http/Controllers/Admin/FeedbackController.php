@@ -10,33 +10,57 @@ use Inertia\Response;
 
 class FeedbackController extends Controller
 {
-    /**
-     * Display the feedback list with user relationship.
-     */
     public function index(): Response
     {
-        // 'with(user)' ensures we get the visitor's name/email from the users table
-        // 'orderBy(created_at)' matches your migration's custom timestamp column
-        $feedbacks = Feedback::with('user')
+        $feedbacks = Feedback::with(['user', 'hall'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($fb) {
+                $path = $fb->image_path;
+                $urls = [];
+
+                // 1. Decode JSON string into an array
+                if (is_string($path)) {
+                    $decoded = json_decode($path, true);
+                    $paths = is_array($decoded) ? $decoded : [$path];
+                } else {
+                    $paths = is_array($path) ? $path : ($path ? [$path] : []);
+                }
+
+                // 2. Clean and format each path into a URL
+                foreach ($paths as $p) {
+                    if ($p) {
+                        $cleanPath = trim($p, '[]" ');
+                        $urls[] = str_replace('\\', '/', $cleanPath);
+                    }
+                }
+
+                // Attach the full array of URLs to the feedback object
+                $fb->image_urls = $urls;
+                
+                return $fb;
+            });
+
+        $summary = [
+            'total_satisfied'   => Feedback::where('sentiment_status', 'Satisfaction')->count(),
+            'total_unsatisfied' => Feedback::where('sentiment_status', 'UnSatisfaction')->count(),
+            'total_natural'     => Feedback::where('sentiment_status', 'Natural')->count(),
+        ];
 
         return Inertia::render('Admin/Feedbacks/Index', [
-            'feedbacks' => $feedbacks
+            'feedbacks' => $feedbacks,
+            'summary'   => (object)$summary,
         ]);
     }
 
-    /**
-     * Delete a feedback record.
-     */
-    public function destroy($id): RedirectResponse
+    public function destroy(int $id): RedirectResponse
     {
-        // Using $id directly ensures no Route-Model binding conflicts 
-        // with singular table names
-        $feedback = Feedback::findOrFail($id);
-        
-        $feedback->delete();
-
-        return redirect()->back()->with('success', 'Feedback deleted successfully');
+        try {
+            $feedback = Feedback::findOrFail($id);
+            $feedback->delete();
+            return redirect()->back()->with('success', 'Feedback removed.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to delete.');
+        }
     }
 }

@@ -1,204 +1,295 @@
 <script setup>
-import { computed, watch } from "vue";
 import VisitorLayout from "@/Layouts/VisitorLayout.vue";
-import { Head, usePage } from "@inertiajs/vue3";
-import Swal from "sweetalert2";
+import { Head, Link, usePage } from "@inertiajs/vue3";
 import {
-    CheckCircleIcon,
-    CalendarDaysIcon,
-    ClockIcon,
-    BuildingOffice2Icon,
-    ArrowDownTrayIcon,
-} from "@heroicons/vue/24/outline";
+    Sparkles,
+    ArrowRight,
+    Ticket,
+    Clock,
+    CheckCircle,
+    ListOrdered,
+    MapPin,
+    AlertCircle,
+} from "lucide-vue-next";
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
-    hasSubmittedFeedback: Boolean,
     stats: Object,
     bookings: Array,
 });
 
 const page = usePage();
-const user = computed(() => page.props.auth?.user);
 
-watch(
-    () => page.props.flash,
-    (flash) => {
-        if (flash?.success) {
-            Swal.fire({
-                title: "Success!",
-                text: flash.success,
-                icon: "success",
-                confirmButtonColor: "#4f46e5",
-            });
-        }
-    },
-    { deep: true, immediate: true },
-);
+const displayName = computed(() => {
+    return (
+        page.props.auth.user?.firstName ||
+        page.props.auth.user?.name ||
+        "Visitor"
+    );
+});
+
+const getStatusClass = (status) => {
+    const s = status?.toLowerCase();
+
+    if (s === "approved" || s === "completed") {
+        return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    }
+
+    if (s === "pending") {
+        return "bg-amber-50 text-amber-700 border-amber-100";
+    }
+
+    return "bg-indigo-50 text-indigo-700 border-indigo-100";
+};
 </script>
 
 <template>
-    <Head title="Visitor Dashboard" />
+    <Head :title="t('nav.dashboard')" />
 
     <VisitorLayout>
-        <template #header>System Overview</template>
-
-        <div class="mb-6">
-            <p class="text-sm text-slate-500 font-medium">
-                Authorized Access:
-                <span class="text-indigo-600 font-bold"
-                    >{{ user?.firstName }} {{ user?.lastName }}</span
-                >
-            </p>
-        </div>
-
-        <div
-            v-if="hasSubmittedFeedback"
-            class="mb-8 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center"
-        >
+        <div class="space-y-6 pb-10">
+            <!-- HERO -->
             <div
-                class="bg-emerald-500 p-2 rounded-xl mr-4 text-white shadow-lg"
+                class="relative overflow-hidden bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm"
             >
-                <CheckCircleIcon class="w-5 h-5" />
-            </div>
-            <div>
-                <p class="text-emerald-800 font-bold text-sm">
-                    Feedback Acknowledged
-                </p>
-                <p class="text-emerald-600/80 text-xs font-medium">
-                    Your visit report has been processed.
-                </p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div
-                v-for="(val, label, index) in {
-                    'Pending Auth': stats.pendingVisits,
-                    'Logs Completed': stats.completedVisits,
-                    'Total Requests': stats.totalBookings,
-                }"
-                :key="index"
-                class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-md group"
-            >
-                <p
-                    class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 group-hover:text-indigo-500 transition-colors"
-                >
-                    {{ label }}
-                </p>
-                <p class="text-5xl font-black text-slate-900 tabular-nums">
-                    {{ val }}
-                </p>
                 <div
-                    class="mt-4 w-12 h-1.5 rounded-full"
-                    :class="
-                        index === 0
-                            ? 'bg-amber-400'
-                            : index === 1
-                              ? 'bg-emerald-500'
-                              : 'bg-indigo-600'
-                    "
-                ></div>
-            </div>
-        </div>
-
-        <div
-            class="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm"
-        >
-            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50">
-                <h3
-                    class="font-black text-slate-800 uppercase text-[12px] tracking-[0.15em]"
+                    class="flex flex-col md:flex-row justify-between items-center gap-8"
                 >
-                    Access Logs
-                </h3>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead
-                        class="bg-slate-50/30 text-slate-400 text-[10px] uppercase font-bold tracking-widest"
-                    >
-                        <tr>
-                            <th class="px-8 py-4">Security Slot</th>
-                            <th class="px-8 py-4">Location</th>
-                            <th class="px-8 py-4">Status</th>
-                            <th class="px-8 py-4 text-right">Verification</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr
-                            v-for="booking in bookings"
-                            :key="booking.id"
-                            class="text-sm hover:bg-slate-50/80 transition-all"
+                    <div class="max-w-xl text-center md:text-left">
+                        <div
+                            class="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[11px] font-bold mb-4 uppercase tracking-widest border border-indigo-100"
                         >
-                            <td class="px-8 py-6">
-                                <div
-                                    class="font-bold text-slate-700 flex items-center gap-2"
+                            <Sparkles :size="14" />
+                            {{ t("dashboard.welcome_back") }}
+                        </div>
+
+                        <h2
+                            class="text-4xl font-black text-slate-900 tracking-tight mb-2"
+                        >
+                            {{ t("Hello") }},
+                            <span class="text-indigo-600">{{
+                                displayName
+                            }}</span>
+                            👋
+                        </h2>
+
+                        <p class="text-slate-600 font-medium mb-6">
+                            {{
+                                t(
+                                    "Explore your booking options and manage your bookings!",
+                                )
+                            }}
+                        </p>
+
+                        <div
+                            class="flex gap-3 flex-wrap justify-center md:justify-start"
+                        >
+                            <Link
+                                :href="route('visitor.booking.create')"
+                                class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition shadow-md"
+                            >
+                                {{ t("dashboard.btn_book") }}
+                                <ArrowRight class="inline ml-2" :size="16" />
+                            </Link>
+
+                            <Link
+                                :href="route('visitor.history')"
+                                class="bg-indigo-50 text-indigo-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-100 border border-indigo-100 transition"
+                            >
+                                {{ t("dashboard.btn_history") }}
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div
+                        class="hidden lg:flex bg-indigo-50 p-8 rounded-3xl border border-indigo-100"
+                    >
+                        <Ticket :size="80" class="text-indigo-600" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATS -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div
+                    class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"
+                >
+                    <div class="flex items-center gap-4">
+                        <div class="p-3 bg-amber-50 text-amber-700 rounded-xl">
+                            <Clock :size="20" />
+                        </div>
+                        <div>
+                            <p
+                                class="text-xs font-bold text-indigo-400 uppercase tracking-widest"
+                            >
+                                {{ t("Pending Bookings") }}
+                            </p>
+                            <h3 class="text-2xl font-black text-slate-900">
+                                {{ stats.pendingVisits }}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"
+                >
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="p-3 bg-emerald-50 text-emerald-700 rounded-xl"
+                        >
+                            <CheckCircle :size="20" />
+                        </div>
+                        <div>
+                            <p
+                                class="text-xs font-bold text-indigo-400 uppercase tracking-widest"
+                            >
+                                {{ t("Approved Bookings") }}
+                            </p>
+                            <h3 class="text-2xl font-black text-slate-900">
+                                {{ stats.completedVisits }}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"
+                >
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="p-3 bg-indigo-50 text-indigo-700 rounded-xl"
+                        >
+                            <ListOrdered :size="20" />
+                        </div>
+                        <div>
+                            <p
+                                class="text-xs font-bold text-indigo-400 uppercase tracking-widest"
+                            >
+                                {{ t("Total Status") }}
+                            </p>
+                            <h3 class="text-2xl font-black text-slate-900">
+                                {{ stats.totalBookings }}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-black text-slate-900">
+                        {{ t("dashboard.recent_bookings") }}
+                    </h3>
+
+                    <Link
+                        :href="route('visitor.history')"
+                        class="text-indigo-600 text-xs font-bold uppercase tracking-widest hover:text-indigo-800"
+                    >
+                        {{ t("dashboard.view_all") }} →
+                    </Link>
+                </div>
+
+                <div
+                    v-if="bookings.length"
+                    class="bg-white rounded-2xl border border-slate-100 overflow-hidden"
+                >
+                    <table class="w-full text-left">
+                        <thead class="bg-indigo-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-4 text-xs font-black text-indigo-700 uppercase"
                                 >
-                                    <CalendarDaysIcon
-                                        class="w-4 h-4 text-slate-400"
-                                    />
-                                    {{ booking.booking_date }}
-                                </div>
-                                <div
-                                    class="text-[10px] text-indigo-500 font-bold uppercase mt-1.5 flex items-center gap-1"
+                                    Hall
+                                </th>
+                                <th
+                                    class="px-6 py-4 text-xs font-black text-indigo-700 uppercase"
                                 >
-                                    <ClockIcon class="w-3 h-3" /> Slot:
-                                    {{ booking.slot_id }}
-                                </div>
-                            </td>
-                            <td class="px-8 py-6 text-slate-500 font-medium">
-                                <div class="flex items-center gap-2">
-                                    <BuildingOffice2Icon
-                                        class="w-4 h-4 text-slate-300"
+                                    Date
+                                </th>
+                                <th
+                                    class="px-6 py-4 text-xs font-black text-indigo-700 uppercase"
+                                >
+                                    Status
+                                </th>
+                                <th
+                                    class="px-6 py-4 text-xs font-black text-indigo-700 uppercase"
+                                >
+                                    Notes
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-slate-100">
+                            <tr
+                                v-for="booking in bookings"
+                                :key="booking.id"
+                                class="hover:bg-indigo-50/40 transition"
+                            >
+                                <td
+                                    class="px-6 py-4 text-sm font-semibold text-slate-800 flex items-center gap-2"
+                                >
+                                    <MapPin
+                                        :size="14"
+                                        class="text-indigo-400"
                                     />
                                     {{ booking.hall_names }}
-                                </div>
-                            </td>
-                            <td class="px-8 py-6">
-                                <span
-                                    :class="{
-                                        'bg-amber-50 text-amber-600 border-amber-200/50':
-                                            booking.status.toLowerCase() ===
-                                            'pending',
-                                        'bg-emerald-50 text-emerald-600 border-emerald-200/50':
-                                            ['approved', 'completed'].includes(
-                                                booking.status.toLowerCase(),
-                                            ),
-                                        'bg-rose-50 text-rose-600 border-rose-200/50':
-                                            ['cancelled', 'rejected'].includes(
-                                                booking.status.toLowerCase(),
-                                            ),
-                                    }"
-                                    class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase border"
+                                </td>
+
+                                <td class="px-6 py-4 text-sm text-slate-600">
+                                    {{ booking.booking_date }}
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <span
+                                        :class="[
+                                            getStatusClass(booking.status),
+                                            'px-3 py-1 rounded-full text-xs font-bold border',
+                                        ]"
+                                    >
+                                        {{ booking.status }}
+                                    </span>
+                                </td>
+
+                                <td
+                                    class="px-6 py-4 text-sm text-slate-500 italic"
                                 >
-                                    {{ booking.status }}
-                                </span>
-                            </td>
-                            <td class="px-8 py-6 text-right">
-                                <a
-                                    v-if="
-                                        ['approved', 'completed'].includes(
-                                            booking.status.toLowerCase(),
-                                        )
-                                    "
-                                    :href="
-                                        route(
-                                            'visitor.booking.download',
-                                            booking.id,
-                                        )
-                                    "
-                                    class="text-indigo-600 font-black hover:text-indigo-800 text-[11px] uppercase transition-colors"
-                                >
-                                    Get Ticket
-                                </a>
-                                <span
-                                    v-else
-                                    class="text-slate-300 italic text-[11px]"
-                                    >Verifying...</span
-                                >
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                    {{ booking.admin_feedback || "No notes" }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- EMPTY -->
+                <div
+                    v-else
+                    class="bg-white rounded-3xl p-12 text-center border border-dashed border-slate-200"
+                >
+                    <AlertCircle
+                        class="mx-auto text-indigo-200 mb-4"
+                        :size="40"
+                    />
+
+                    <h4 class="font-black text-slate-900 mb-1">
+                        No bookings yet
+                    </h4>
+
+                    <p class="text-slate-500 text-sm mb-6">
+                        Start by creating your first booking.
+                    </p>
+
+                    <Link
+                        :href="route('visitor.booking.create')"
+                        class="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-bold uppercase hover:bg-indigo-700"
+                    >
+                        Create Booking
+                    </Link>
+                </div>
             </div>
         </div>
     </VisitorLayout>

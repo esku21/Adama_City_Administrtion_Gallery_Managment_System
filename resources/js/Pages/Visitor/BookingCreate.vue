@@ -1,85 +1,86 @@
 <script setup>
-import { Head, useForm } from "@inertiajs/vue3";
-import { ref, computed } from "vue";
+import { Head, useForm, usePage } from "@inertiajs/vue3";
+import { ref, computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import Swal from "sweetalert2";
 import VisitorLayout from "@/Layouts/VisitorLayout.vue";
 
+import {
+    Building2,
+    Gavel,
+    Palmtree,
+    TrendingUp,
+    Layers,
+    Banknote,
+    Crown,
+    User,
+    ArrowRight,
+    ArrowLeft,
+    CheckCircle2,
+    FileUp,
+    Calendar,
+    Users,
+    Clock,
+    MapPin,
+} from "lucide-vue-next";
+
+const { t } = useI18n();
+const page = usePage();
+
 const props = defineProps({
-    halls: Array,
+    halls: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const step = ref(1);
 
-const availableHalls = [
-    {
-        id: 1,
-        icon: "🏛️",
-        name: "Adama City Hall",
-        description: "Central hub for city assemblies.",
-    },
-    {
-        id: 2,
-        icon: "⚖️",
-        name: "Municipal Council Chamber",
-        description: "Space for local governance.",
-    },
-    {
-        id: 3,
-        icon: "🎭",
-        name: "Aba Gadaa Cultural Hall",
-        description: "Cultural and historical venue.",
-    },
-    {
-        id: 4,
-        icon: "📈",
-        name: "Investment Promotion Hall",
-        description: "Center for economic growth.",
-    },
-    {
-        id: 5,
-        icon: "🗺️",
-        name: "Land Management Hall",
-        description: "Urban development services.",
-    },
-    {
-        id: 6,
-        icon: "🌟",
-        name: "Multi-Purpose Hall",
-        description: "Versatile space for gatherings.",
-    },
-    {
-        id: 7,
-        icon: "📢",
-        name: "Public Relations Hall",
-        description: "Communication bridge.",
-    },
-    {
-        id: 8,
-        icon: "🛡️",
-        name: "Justice & Human Rights Hall",
-        description: "Legal awareness hall.",
-    },
-    {
-        id: 9,
-        icon: "💰",
-        name: "Revenue Service Hall",
-        description: "Central tax services.",
-    },
-];
-
-/** * UPDATED: The 'id' now stores the actual time string.
- * This is what will be saved in your database 'slot_id' column.
+/**
+ * GLOBAL ERROR HANDLER
  */
+watch(
+    () => page.props.flash?.error,
+    (message) => {
+        if (message) {
+            Swal.fire({
+                icon: "error",
+                title: "Booking Restricted",
+                text: message,
+                confirmButtonColor: "#4f46e5",
+            });
+        }
+    },
+    { immediate: true },
+);
+
+const steps = computed(() => [
+    { number: 1, label: t("bookings.create_title") },
+    { number: 2, label: t("bookings.identify_title") },
+    { number: 3, label: t("bookings.schedule_title") },
+]);
+
+const getHallIcon = (name) => {
+    const map = {
+        "Adama City Hall": Building2,
+        "Aba Gadaa Cultural Hall": Palmtree,
+        "Municipal Council Chamber": Gavel,
+        "Investment Promotion Hall": TrendingUp,
+        "Revenue Service Hall": Banknote,
+    };
+    return map[name] || Layers;
+};
+
 const morningSlots = [
-    { id: "3:00 - 3:30", label: "Morning Slot 1" },
-    { id: "4:00 - 4:30", label: "Morning Slot 2" },
-    { id: "5:00 - 5:30", label: "Morning Slot 3" },
+    { id: "m1", time: "09:00 AM - 09:30 AM", label: "Early Morning" },
+    { id: "m2", time: "10:00 AM - 10:30 AM", label: "Mid Morning" },
+    { id: "m3", time: "11:00 AM - 11:30 AM", label: "Late Morning" },
 ];
 
 const afternoonSlots = [
-    { id: "8:00 - 8:30", label: "Afternoon Slot 1" },
-    { id: "9:00 - 9:30", label: "Afternoon Slot 2" },
-    { id: "10:00 - 10:30", label: "Afternoon Slot 3" },
+    { id: "a1", time: "02:00 PM - 02:30 PM", label: "Early Afternoon" },
+    { id: "a2", time: "03:00 PM - 03:30 PM", label: "Mid Afternoon" },
+    { id: "a3", time: "04:00 PM - 04:30 PM", label: "Late Afternoon" },
 ];
 
 const form = useForm({
@@ -93,26 +94,22 @@ const form = useForm({
     attachment: null,
 });
 
+const today = new Date().toISOString().split("T")[0];
+
 const isWeekday = computed(() => {
     if (!form.booking_date) return false;
-    const date = new Date(form.booking_date);
-    const day = date.getDay();
-    return day !== 0 && day !== 6; // 0=Sun, 6=Sat
+    const d = new Date(form.booking_date).getDay();
+    return d !== 0 && d !== 6;
 });
 
 const toggleHall = (id) => {
-    const index = form.hall_ids.indexOf(id);
-    if (index > -1) {
-        form.hall_ids.splice(index, 1);
-    } else {
-        form.hall_ids.push(id);
-    }
+    form.hall_ids = [id];
 };
 
-const setCategory = (category) => {
-    form.visitor_category = category;
+const setCategory = (cat) => {
+    form.visitor_category = cat;
     form.visitor_type =
-        category === "VIP" ? "Federal-Authority" : "Local Resident";
+        cat === "VIP" ? "Official Government Body" : "Local Resident";
     step.value = 3;
 };
 
@@ -121,292 +118,241 @@ const handleFileUpload = (e) => {
 };
 
 const validateAndSubmit = () => {
-    if (form.hall_ids.length === 0) {
-        Swal.fire(
-            "Selection Required",
-            "Please select at least one hall.",
-            "warning",
-        );
-        step.value = 1;
-        return;
+    if (!form.hall_ids.length) {
+        return Swal.fire("Select Hall", "Please select a hall", "warning");
     }
-    if (!form.booking_date || !isWeekday.value) {
-        Swal.fire(
-            "Invalid Date",
-            "Please select a weekday (Monday-Friday).",
+
+    if (form.booking_date && !isWeekday.value) {
+        return Swal.fire(
+            "Weekend Not Allowed",
+            "Only Monday–Friday bookings allowed",
             "error",
         );
-        return;
     }
-    if (!form.slot_id) {
-        Swal.fire("Slot Required", "Please select a time slot.", "warning");
-        return;
-    }
+
     if (form.visitor_category === "VIP" && !form.attachment) {
-        Swal.fire(
-            "Attachment Required",
-            "VIP visits require a supporting document.",
-            "error",
+        return Swal.fire(
+            "Missing Document",
+            "VIP bookings require official letter",
+            "info",
         );
-        return;
     }
 
     form.post(route("visitor.booking.store"), {
         forceFormData: true,
-        onSuccess: () => {
+        onSuccess: (page) => {
+            if (page?.props?.flash?.error) return;
+            form.reset();
+            step.value = 1;
             Swal.fire({
-                title: "Booking Confirmed!",
-                text: "Your request has been sent successfully.",
                 icon: "success",
-                timer: 2000,
-                showConfirmButton: false,
+                title: page?.props?.flash?.success || t("bookings.success_msg"),
+                confirmButtonColor: "#4f46e5",
             });
         },
-        onError: (errors) => {
-            const errorMsg =
-                Object.values(errors)[0] || "Something went wrong.";
-            Swal.fire("Error", errorMsg, "error");
+        onError: () => {
+            Swal.fire({
+                icon: "error",
+                title: "Request Failed",
+                text: "Please check your input",
+            });
         },
     });
 };
-
-const today = new Date().toISOString().split("T")[0];
 </script>
 
 <template>
-    <Head title="Create Booking" />
+    <Head :title="`${$t('nav.new_booking')} - ACAGMS`" />
 
     <VisitorLayout>
-        <template #header>Create New Booking</template>
-
-        <div class="max-w-6xl mx-auto pb-20">
-            <div v-if="step === 1" class="space-y-10 animate-in">
-                <p
-                    class="text-center text-slate-400 font-bold text-sm uppercase tracking-widest"
+        <div class="max-w-5xl mx-auto px-4 py-10">
+            <!-- STEP INDICATOR -->
+            <div class="flex justify-between mb-12 max-w-2xl mx-auto relative">
+                <div
+                    v-for="s in steps"
+                    :key="s.number"
+                    class="flex-1 text-center z-10"
                 >
-                    Step 1: Select halls to visit
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div
-                        v-for="hall in availableHalls"
-                        :key="hall.id"
-                        @click="toggleHall(hall.id)"
+                        class="w-12 h-12 mx-auto rounded-full flex items-center justify-center font-bold shadow-sm transition-all"
                         :class="
-                            form.hall_ids.includes(hall.id)
-                                ? 'border-indigo-500 bg-white ring-2 ring-indigo-500/10 shadow-xl'
-                                : 'border-transparent bg-white shadow-sm hover:shadow-md'
+                            step >= s.number
+                                ? 'bg-indigo-600 text-white ring-4 ring-indigo-100'
+                                : 'bg-white text-gray-400 border'
                         "
-                        class="p-8 rounded-[2rem] border-2 cursor-pointer transition-all duration-300 flex flex-col items-center text-center group"
                     >
-                        <div
-                            class="text-4xl mb-4 group-hover:scale-110 transition-transform"
-                        >
-                            {{ hall.icon }}
-                        </div>
-                        <h3
-                            class="text-sm font-black text-slate-900 uppercase tracking-tight mb-2"
-                        >
-                            {{ hall.name }}
-                        </h3>
-                        <p
-                            class="text-slate-400 text-[10px] font-medium leading-relaxed"
-                        >
-                            {{ hall.description }}
-                        </p>
+                        <CheckCircle2 v-if="step > s.number" :size="22" />
+                        <span v-else>{{ s.number }}</span>
                     </div>
-                </div>
-                <div class="flex justify-center">
-                    <button
-                        @click="step = 2"
-                        :disabled="form.hall_ids.length === 0"
-                        class="w-full max-w-md py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg hover:bg-indigo-700 disabled:opacity-30 transition-all"
+                    <p
+                        class="text-[11px] mt-3 font-bold uppercase"
+                        :class="
+                            step >= s.number
+                                ? 'text-indigo-600'
+                                : 'text-gray-400'
+                        "
                     >
-                        Continue to Category
-                    </button>
+                        {{ s.label }}
+                    </p>
                 </div>
             </div>
 
-            <div v-if="step === 2" class="max-w-4xl mx-auto py-10 animate-in">
-                <h1
-                    class="text-2xl font-black text-slate-900 text-center uppercase mb-12"
-                >
-                    Step 2: Visitor Category
-                </h1>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div
-                        @click="setCategory('VIP')"
-                        class="bg-white p-12 rounded-[3rem] shadow-sm border-2 border-transparent hover:border-amber-400 cursor-pointer text-center group transition-all"
-                    >
-                        <div
-                            class="text-6xl mb-6 group-hover:scale-110 transition-transform"
-                        >
-                            🏆
-                        </div>
-                        <h2 class="text-xl font-black text-slate-900 uppercase">
-                            VIP / Official
-                        </h2>
-                        <p class="text-slate-400 mt-2 text-xs font-bold">
-                            Government/Org visits
-                        </p>
-                    </div>
-                    <div
-                        @click="setCategory('Normal')"
-                        class="bg-white p-12 rounded-[3rem] shadow-sm border-2 border-transparent hover:border-indigo-500 cursor-pointer text-center group transition-all"
-                    >
-                        <div
-                            class="text-6xl mb-6 group-hover:scale-110 transition-transform"
-                        >
-                            👤
-                        </div>
-                        <h2 class="text-xl font-black text-slate-900 uppercase">
-                            Normal Visitor
-                        </h2>
-                        <p class="text-slate-400 mt-2 text-xs font-bold">
-                            Residents or Students
-                        </p>
-                    </div>
-                </div>
-                <button
-                    @click="step = 1"
-                    class="block mx-auto mt-8 text-slate-400 font-bold uppercase text-[10px] hover:text-indigo-600 transition-colors"
-                >
-                    Back to Halls
-                </button>
-            </div>
+            <!-- CARD -->
+            <div class="bg-white rounded-3xl shadow-2xl border overflow-hidden">
+                <!-- STEP 1 -->
+                <div v-if="step === 1" class="p-8">
+                    <h2 class="text-3xl font-black mb-2">
+                        {{ $t("bookings.create_title") }}
+                    </h2>
+                    <p class="text-gray-500 mb-8">Choose a hall to continue</p>
 
-            <div v-if="step === 3" class="max-w-4xl mx-auto animate-in">
-                <form
-                    @submit.prevent="validateAndSubmit"
-                    class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-8"
-                >
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label
-                                class="text-[10px] font-black uppercase text-slate-400"
-                                >Date of Visit</label
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div
+                            v-for="hall in props.halls"
+                            :key="hall.id"
+                            @click="toggleHall(hall.id)"
+                            class="p-6 border rounded-2xl cursor-pointer transition hover:shadow-lg"
+                            :class="
+                                form.hall_ids.includes(hall.id)
+                                    ? 'border-indigo-600 bg-indigo-50'
+                                    : 'border-gray-200'
+                            "
+                        >
+                            <component
+                                :is="getHallIcon(hall.name)"
+                                class="w-8 h-8 mb-3 text-indigo-600"
+                            />
+                            <h3 class="font-bold">{{ hall.name }}</h3>
+                            <p
+                                class="text-sm text-gray-500 flex items-center gap-1"
                             >
+                                <MapPin class="w-4 h-4" />
+                                {{ hall.location }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 text-right">
+                        <button
+                            @click="step = 2"
+                            :disabled="!form.hall_ids.length"
+                            class="bg-indigo-600 text-white px-6 py-3 rounded-xl disabled:opacity-50"
+                        >
+                            Continue <ArrowRight class="inline w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2 -->
+                <div v-if="step === 2" class="p-8">
+                    <h2 class="text-2xl font-bold mb-6 text-center">
+                        Select Visitor Type
+                    </h2>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div
+                            @click="setCategory('Normal')"
+                            class="p-8 border rounded-2xl text-center cursor-pointer hover:shadow-lg"
+                        >
+                            <User class="mx-auto w-10 h-10 mb-3" />
+                            Normal Visitor
+                        </div>
+
+                        <div
+                            @click="setCategory('VIP')"
+                            class="p-8 border rounded-2xl text-center cursor-pointer hover:shadow-lg"
+                        >
+                            <Crown class="mx-auto w-10 h-10 mb-3" />
+                            VIP Visitor
+                        </div>
+                    </div>
+
+                    <div class="mt-6 text-center">
+                        <button @click="step = 1" class="text-gray-500">
+                            <ArrowLeft class="inline w-4 h-4" /> Back
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3 -->
+                <div v-if="step === 3" class="p-8">
+                    <h2 class="text-2xl font-bold mb-6">Schedule Booking</h2>
+
+                    <form
+                        @submit.prevent="validateAndSubmit"
+                        class="grid md:grid-cols-2 gap-6"
+                    >
+                        <div>
+                            <label class="font-bold">Choice Date</label>
                             <input
                                 type="date"
                                 v-model="form.booking_date"
                                 :min="today"
-                                class="w-full bg-slate-50 border-none rounded-xl p-4 font-bold focus:ring-2 focus:ring-indigo-500"
+                                class="w-full p-3 border rounded-xl"
                             />
-                        </div>
-                        <div class="space-y-2">
-                            <label
-                                class="text-[10px] font-black uppercase text-slate-400"
-                                >Total Visitors</label
+
+                            <label class="font-bold mt-4 block"
+                                >How many Visitors?</label
                             >
                             <input
                                 type="number"
                                 v-model="form.number_of_visitors"
                                 min="1"
-                                class="w-full bg-slate-50 border-none rounded-xl p-4 font-bold"
+                                class="w-full p-3 border rounded-xl"
                             />
-                        </div>
-                    </div>
 
-                    <div
-                        v-if="form.visitor_category === 'VIP'"
-                        class="space-y-6 animate-in"
-                    >
-                        <div class="space-y-2">
-                            <label
-                                class="text-[10px] font-black uppercase text-slate-400"
-                                >Organization Name</label
+                            <div
+                                v-if="form.visitor_category === 'VIP'"
+                                class="mt-4"
                             >
-                            <input
-                                type="text"
-                                v-model="form.organization_name"
-                                placeholder="e.g. Ministry of Education"
-                                class="w-full bg-slate-50 border-none rounded-xl p-4 font-bold"
-                            />
+                                <input type="file" @change="handleFileUpload" />
+                            </div>
                         </div>
-                        <div class="space-y-2">
-                            <label
-                                class="text-[10px] font-black uppercase text-slate-400"
-                                >Supporting Document (PDF/JPG)</label
-                            >
-                            <input
-                                type="file"
-                                @change="handleFileUpload"
-                                class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"
-                            />
-                        </div>
-                    </div>
 
-                    <div class="space-y-4">
-                        <label
-                            class="text-[10px] font-black uppercase text-slate-400"
-                            >Select Time Slot</label
-                        >
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            <label
+                        <div>
+                            <label class="font-bold">Time Slot</label>
+
+                            <div
                                 v-for="slot in [
                                     ...morningSlots,
                                     ...afternoonSlots,
                                 ]"
                                 :key="slot.id"
+                                @click="form.slot_id = slot.id"
+                                class="p-3 border rounded-xl mt-2 cursor-pointer"
                                 :class="
                                     form.slot_id === slot.id
-                                        ? 'bg-indigo-600 text-white shadow-lg'
-                                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                                        ? 'bg-indigo-50 border-indigo-600'
+                                        : ''
                                 "
-                                class="cursor-pointer p-4 rounded-xl text-center transition-all border border-transparent"
                             >
-                                <input
-                                    type="radio"
-                                    :value="slot.id"
-                                    v-model="form.slot_id"
-                                    class="hidden"
-                                />
-                                <span
-                                    class="block font-black text-[10px] uppercase"
-                                    >{{ slot.label }}</span
-                                >
-                                <span class="text-[11px] font-bold">{{
-                                    slot.id
-                                }}</span>
-                            </label>
+                                {{ slot.label }} - {{ slot.time }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div
-                        class="flex items-center justify-between pt-6 border-t border-slate-50"
-                    >
-                        <button
-                            type="button"
-                            @click="step = 2"
-                            class="text-slate-400 font-black text-[10px] uppercase hover:text-slate-600"
-                        >
-                            Back
-                        </button>
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="px-10 py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs shadow-xl hover:bg-indigo-700 transition-all disabled:opacity-50"
-                        >
-                            {{
-                                form.processing
-                                    ? "Processing..."
-                                    : "Confirm Booking"
-                            }}
-                        </button>
-                    </div>
-                </form>
+                        <div class="md:col-span-2 text-right">
+                            <button
+                                type="submit"
+                                class="bg-indigo-600 text-white px-6 py-3 rounded-xl"
+                            >
+                                Confirm Booking
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </VisitorLayout>
 </template>
 
 <style scoped>
-.animate-in {
+.animate-fade-in {
     animation: fadeIn 0.4s ease-out;
 }
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(10px);
     }
     to {
         opacity: 1;

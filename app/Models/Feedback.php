@@ -9,37 +9,38 @@ class Feedback extends Model
 {
     use HasFactory;
 
-    // Table name is singular based on your migration
-    protected $table = 'feedback';
+    protected $table = 'feedbacks';
 
-    // Disable updated_at as you requested Option 2
-    public $timestamps = false;
+    // Set to true to automatically handle created_at and updated_at
+    public $timestamps = true;
 
     protected $fillable = [
         'user_id',
         'booking_id',
-        'type',       // 'general' or 'hall'
-        'hall_id',    // Links to the specific hall
+        'type',
+        'hall_id',
         'subject',
         'message',
-        'rating',     // Star rating (1-5)
+        'rating',
         'image_path',
-        'created_at', 
+        'sentiment_status',
+        'topic_tag',
+        'verified_by',
+        'resolution_notes',
     ];
 
-    /**
-     * Relationship: The feedback belongs to a visitor.
-     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Relationship: The feedback belongs to a specific hall.
-     */
     public function hall()
     {
         return $this->belongsTo(Hall::class);
+    }
+
+    public function verifier()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 }

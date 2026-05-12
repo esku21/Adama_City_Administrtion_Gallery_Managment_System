@@ -1,247 +1,202 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, useForm, usePage } from "@inertiajs/vue3";
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
-const user = computed(() => usePage().props.auth.user);
+const { t } = useI18n();
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const photoPreview = ref(null);
+const fileInput = ref(null);
+
+const routePrefix = computed(() =>
+    user.value?.role === "admin" ? "admin." : "visitor.",
+);
 
 const form = useForm({
     firstName: user.value?.firstName || "",
     lastName: user.value?.lastName || "",
     email: user.value?.email || "",
+    phone_no: user.value?.phone_no || "",
+    photo: null,
+    _method: "PATCH",
 });
 
-const passwordForm = useForm({
-    current_password: "",
-    password: "",
-    password_confirmation: "",
-});
-
-const updateProfile = () => {
-    form.patch(route("profile.update"), {
-        preserveScroll: true,
-        onSuccess: () => {
-            // Optional: Add custom success logic here
-        },
-    });
+const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        form.photo = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            photoPreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 };
 
-const updatePassword = () => {
-    passwordForm.put(route("password.update"), {
+const updateProfile = () => {
+    form.post(route(`${routePrefix.value}profile.update`), {
         preserveScroll: true,
-        onSuccess: () => passwordForm.reset(),
-        onError: () => passwordForm.reset("password", "password_confirmation"),
+        forceFormData: true,
+        onSuccess: () => {
+            photoPreview.value = null;
+            form.photo = null;
+            if (fileInput.value) fileInput.value.value = null;
+        },
     });
 };
 </script>
 
 <template>
-    <Head title="Admin Profile" />
+    <Head :title="t('admin_profile.title')" />
 
     <AuthenticatedLayout>
-        <div class="max-w-6xl mx-auto animate-in fade-in duration-700">
-            <header class="mb-10 flex items-center gap-6">
-                <div
-                    class="h-16 w-16 bg-indigo-600 rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-indigo-200"
+        <div class="max-w-4xl mx-auto animate-in fade-in duration-700 p-4">
+            <div
+                class="bg-white border border-slate-200 p-6 md:p-8 rounded-3xl shadow-sm relative overflow-hidden mt-2"
+            >
+                <form
+                    @submit.prevent="updateProfile"
+                    class="space-y-6 relative z-10"
                 >
-                    <span class="material-icons-outlined text-white text-3xl"
-                        >admin_panel_settings</span
+                    <div
+                        class="flex flex-col md:flex-row md:items-center gap-5 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200"
                     >
-                </div>
-                <div>
-                    <h1
-                        class="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none"
-                    >
-                        Identity & <span class="text-indigo-600">Access</span>
-                    </h1>
-                    <p
-                        class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2"
-                    >
-                        System Admin ID:
-                        <span class="text-slate-600">#00{{ user.id }}</span> •
-                        Role: <span class="text-indigo-500">Superuser</span>
-                    </p>
-                </div>
-            </header>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div
-                    class="bg-white border border-slate-200 p-10 rounded-[3rem] shadow-sm relative overflow-hidden group"
-                >
-                    <div class="flex items-center gap-3 mb-10">
-                        <div
-                            class="h-10 w-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600"
-                        >
-                            <span class="material-icons-outlined"
-                                >fingerprint</span
+                        <div class="relative inline-block">
+                            <div
+                                class="h-20 w-20 rounded-2xl bg-white border-2 border-white shadow-md overflow-hidden flex items-center justify-center"
                             >
+                                <img
+                                    v-if="photoPreview"
+                                    :src="photoPreview"
+                                    class="h-full w-full object-cover"
+                                />
+                                <img
+                                    v-else-if="user.profile_photo_path"
+                                    :src="'/storage/' + user.profile_photo_path"
+                                    class="h-full w-full object-cover"
+                                />
+                                <span
+                                    v-else
+                                    class="material-icons-outlined text-slate-300 text-3xl"
+                                    >person</span
+                                >
+                            </div>
+
+                            <label
+                                class="absolute -bottom-1 -right-1 h-7 w-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white cursor-pointer shadow-md hover:bg-indigo-700 transition-all"
+                            >
+                                <span class="material-icons-outlined text-xs"
+                                    >photo_camera</span
+                                >
+                                <input
+                                    ref="fileInput"
+                                    type="file"
+                                    class="hidden"
+                                    @change="handlePhotoChange"
+                                    accept="image/*"
+                                />
+                            </label>
                         </div>
-                        <h3
-                            class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-800"
-                        >
-                            Identity Registry
-                        </h3>
+
+                        <div class="flex-1">
+                            <h4
+                                class="text-[10px] font-black uppercase text-slate-800 tracking-wider"
+                            >
+                                {{ t("admin_profile.avatar_title") }}
+                            </h4>
+                            <p class="text-[10px] text-slate-500 mt-1">
+                                {{ t("admin_profile.avatar_help") }}
+                            </p>
+                            <div class="flex gap-2 mt-3">
+                                <button
+                                    type="button"
+                                    @click="fileInput.click()"
+                                    class="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-white border border-slate-200 rounded-md hover:bg-slate-100 transition-all"
+                                >
+                                    {{ t("admin_profile.change_photo") }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <form
-                        @submit.prevent="updateProfile"
-                        class="space-y-6 relative z-10"
-                    >
-                        <div class="grid grid-cols-2 gap-5">
-                            <div class="space-y-2">
-                                <label class="label">First Name</label>
-                                <input
-                                    v-model="form.firstName"
-                                    type="text"
-                                    class="input-field"
-                                    placeholder="Entry required..."
-                                />
-                                <div
-                                    v-if="form.errors.firstName"
-                                    class="text-[9px] font-bold text-rose-500 uppercase mt-1 ml-1"
-                                >
-                                    {{ form.errors.firstName }}
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="label">Last Name</label>
-                                <input
-                                    v-model="form.lastName"
-                                    type="text"
-                                    class="input-field"
-                                    placeholder="Entry required..."
-                                />
-                                <div
-                                    v-if="form.errors.lastName"
-                                    class="text-[9px] font-bold text-rose-500 uppercase mt-1 ml-1"
-                                >
-                                    {{ form.errors.lastName }}
-                                </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="label">{{
+                                t("admin_profile.first_name")
+                            }}</label>
+                            <input
+                                v-model="form.firstName"
+                                type="text"
+                                class="input-field"
+                            />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="label">{{
+                                t("admin_profile.last_name")
+                            }}</label>
+                            <input
+                                v-model="form.lastName"
+                                type="text"
+                                class="input-field"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="label">{{
+                                t("admin_profile.phone")
+                            }}</label>
+                            <input
+                                v-model="form.phone_no"
+                                type="text"
+                                placeholder="+251..."
+                                class="input-field"
+                            />
+                            <div
+                                v-if="form.errors.phone_no"
+                                class="text-rose-500 text-[9px] font-bold uppercase mt-1"
+                            >
+                                {{ form.errors.phone_no }}
                             </div>
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="label">Admin Email Address</label>
+                        <div class="space-y-1.5">
+                            <label class="label">{{
+                                t("admin_profile.email")
+                            }}</label>
                             <input
                                 v-model="form.email"
                                 type="email"
                                 readonly
                                 class="input-field bg-slate-50 text-slate-400 border-dashed cursor-not-allowed"
                             />
-                            <p
-                                class="text-[8px] font-bold text-slate-400 uppercase ml-1 italic"
-                            >
-                                Contact system owner to change primary email
-                            </p>
                         </div>
+                    </div>
 
+                    <div class="pt-2 flex items-center">
                         <button
                             :disabled="form.processing"
-                            class="btn-primary w-full group"
+                            class="btn-primary w-full md:w-auto md:px-10 group"
                         >
                             <span
                                 class="flex items-center justify-center gap-2"
                             >
-                                Update Identity
+                                {{
+                                    form.processing
+                                        ? t("admin_profile.updating")
+                                        : t("admin_profile.save")
+                                }}
                                 <span
                                     class="material-icons-outlined text-sm group-hover:translate-x-1 transition-transform"
                                     >arrow_forward</span
                                 >
                             </span>
                         </button>
-                    </form>
-
-                    <span
-                        class="material-icons-outlined absolute -right-12 -bottom-12 text-[200px] text-slate-50 pointer-events-none group-hover:text-indigo-50/50 transition-colors duration-500"
-                    >
-                        badge
-                    </span>
-                </div>
-
-                <div
-                    class="bg-slate-900 p-10 rounded-[3rem] shadow-2xl text-white relative overflow-hidden border border-slate-800"
-                >
-                    <div class="flex items-center gap-3 mb-10">
-                        <div
-                            class="h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center text-amber-500"
-                        >
-                            <span class="material-icons-outlined"
-                                >security</span
-                            >
-                        </div>
-                        <h3
-                            class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400"
-                        >
-                            Security Protocol
-                        </h3>
                     </div>
-
-                    <form
-                        @submit.prevent="updatePassword"
-                        class="space-y-6 relative z-10"
-                    >
-                        <div class="space-y-2">
-                            <label class="label text-slate-500"
-                                >Current Security Key</label
-                            >
-                            <input
-                                v-model="passwordForm.current_password"
-                                type="password"
-                                class="input-field-dark"
-                                placeholder="••••••••"
-                            />
-                            <div
-                                v-if="passwordForm.errors.current_password"
-                                class="text-[9px] font-bold text-rose-400 uppercase mt-1 ml-1"
-                            >
-                                {{ passwordForm.errors.current_password }}
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label class="label text-slate-500"
-                                >New Password Key</label
-                            >
-                            <input
-                                v-model="passwordForm.password"
-                                type="password"
-                                class="input-field-dark"
-                                placeholder="••••••••"
-                            />
-                            <div
-                                v-if="passwordForm.errors.password"
-                                class="text-[9px] font-bold text-rose-400 uppercase mt-1 ml-1"
-                            >
-                                {{ passwordForm.errors.password }}
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label class="label text-slate-500"
-                                >Confirm Rotation Key</label
-                            >
-                            <input
-                                v-model="passwordForm.password_confirmation"
-                                type="password"
-                                class="input-field-dark"
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <button
-                            :disabled="passwordForm.processing"
-                            class="w-full bg-white text-slate-900 font-black py-5 rounded-2xl uppercase text-[10px] tracking-[0.2em] hover:bg-indigo-50 transition-all shadow-xl active:scale-[0.98]"
-                        >
-                            Rotate Credentials
-                        </button>
-                    </form>
-
-                    <span
-                        class="material-icons-outlined absolute -right-12 -bottom-12 text-[200px] text-white/[0.02] pointer-events-none"
-                    >
-                        lock
-                    </span>
-                </div>
+                </form>
             </div>
         </div>
     </AuthenticatedLayout>
@@ -249,34 +204,12 @@ const updatePassword = () => {
 
 <style scoped>
 .label {
-    @apply text-[9px] font-black uppercase tracking-widest block ml-1;
+    @apply text-[9px] font-black uppercase tracking-widest block ml-1 text-slate-500;
 }
-
 .input-field {
-    @apply w-full border border-slate-200 rounded-2xl py-4 px-6 text-xs font-bold text-slate-700 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all;
+    @apply w-full border border-slate-200 rounded-xl py-3 px-5 text-xs font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all;
 }
-
-.input-field-dark {
-    @apply w-full bg-slate-800/40 border border-slate-700/50 rounded-2xl py-4 px-6 text-xs font-bold text-white placeholder:text-slate-600 focus:ring-4 focus:ring-white/5 focus:border-white/20 outline-none transition-all;
-}
-
 .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 active:scale-[0.98];
-}
-
-/* Animations */
-.fade-in {
-    animation: fadeIn 0.8s ease-out forwards;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-indigo-200 active:scale-[0.98] disabled:opacity-50;
 }
 </style>

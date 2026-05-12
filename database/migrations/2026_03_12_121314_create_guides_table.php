@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('guides', function (Blueprint $table) {
@@ -16,15 +19,25 @@ return new class extends Migration
             $table->string('phone');
             $table->string('password');
             
-            // FIX: This creates the missing 'hall_id' column 
-            // and links it to the 'id' on the 'halls' table
-            $table->foreignId('hall_id')->constrained('halls')->onDelete('cascade');
+            // Added: Profile image path for the Staff Identity feature
+            $table->string('profile_image')->nullable();
             
-            $table->boolean('is_active')->default(true);
+            // Link to the 'halls' table. 
+            // Nullable allows creating guides before assigning them to a station.
+            $table->foreignId('hall_id')
+                  ->nullable() 
+                  ->constrained('halls')
+                  ->onDelete('set null'); // Keeps the guide even if a hall is deleted
+            
+            $table->boolean('is_active')->default(true)->index();
+            $table->rememberToken(); // Important for "Remember Me" login functionality
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('guides');

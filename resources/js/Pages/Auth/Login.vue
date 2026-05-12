@@ -1,13 +1,29 @@
 <script setup>
 import { Head, Link, useForm } from "@inertiajs/vue3";
+import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 
-const props = defineProps({ status: String });
+const { t, locale } = useI18n();
+
+const props = defineProps({
+    status: String,
+    canResetPassword: {
+        type: Boolean,
+        default: true,
+    },
+});
+
+const showPassword = ref(false);
 
 const form = useForm({
     email: "",
     password: "",
     remember: false,
 });
+
+const changeLanguage = (lang) => {
+    locale.value = lang;
+};
 
 const submit = () => {
     form.post(route("login"), {
@@ -17,186 +33,284 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Official Login | Adama City Gallery" />
+    <Head :title="t('login.title')" />
 
-    <div
-        class="min-h-screen bg-[#fcfdfe] flex font-sans antialiased selection:bg-blue-100"
-    >
+    <div class="fixed top-5 right-5 z-50 flex gap-2">
+        <button
+            @click="changeLanguage('en')"
+            :class="
+                locale === 'en'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-slate-600'
+            "
+            class="px-3 py-1 rounded-lg text-xs font-bold shadow-sm border border-slate-200 transition-all"
+        >
+            EN
+        </button>
+        <button
+            @click="changeLanguage('am')"
+            :class="
+                locale === 'am'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-slate-600'
+            "
+            class="px-3 py-1 rounded-lg text-xs font-bold shadow-sm border border-slate-200 transition-all"
+        >
+            አማ
+        </button>
+        <button
+            @click="changeLanguage('or')"
+            :class="
+                locale === 'or'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-slate-600'
+            "
+            class="px-3 py-1 rounded-lg text-xs font-bold shadow-sm border border-slate-200 transition-all"
+        >
+            OR
+        </button>
+    </div>
+
+    <div class="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
         <div
-            class="hidden lg:flex lg:w-[42%] bg-[#020617] relative items-center justify-center p-16 overflow-hidden"
+            class="hidden lg:flex lg:w-1/2 relative bg-[#0F172A] text-white p-12 xl:p-16 items-center justify-center overflow-hidden"
         >
             <div
-                class="absolute top-[-20%] left-[-20%] w-[700px] h-[700px] bg-blue-600 rounded-full blur-[160px] opacity-[0.12]"
+                class="absolute w-[600px] h-[600px] bg-blue-600 opacity-10 blur-[120px] rounded-full -top-40 -left-40"
             ></div>
             <div
-                class="absolute bottom-[-10%] right-[0%] w-[500px] h-[500px] bg-indigo-500 rounded-full blur-[140px] opacity-[0.08]"
-            ></div>
-            <div
-                class="absolute inset-0 opacity-[0.02]"
-                style="
-                    background-image:
-                        linear-gradient(#fff 1.5px, transparent 1.5px),
-                        linear-gradient(90deg, #fff 1.5px, transparent 1.5px);
-                    background-size: 50px 50px;
-                "
+                class="absolute w-[400px] h-[400px] bg-emerald-500 opacity-5 blur-[100px] rounded-full bottom-0 right-0"
             ></div>
 
-            <div class="relative z-10 w-full max-w-sm">
-                <div class="flex items-center gap-6 mb-20">
+            <div class="relative z-10 w-full max-w-lg">
+                <div class="flex items-center gap-6">
                     <div
-                        class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl border border-white/20 aspect-square shrink-0"
+                        class="h-20 w-20 bg-white rounded-2xl shadow-2xl flex items-center justify-center p-3 shrink-0"
                     >
                         <img
                             src="/storage/images/adama.png"
-                            alt="Adama Logo"
-                            class="w-10 h-10 object-contain"
+                            class="w-full h-full object-contain"
+                            alt="Logo"
                         />
                     </div>
                     <div>
+                        <h2
+                            class="text-3xl font-black tracking-tight leading-none uppercase"
+                        >
+                            {{ t("login.brand_city") }}
+                            <span class="text-blue-400 font-light block mt-1">
+                                {{ t("login.brand_admin") }}
+                            </span>
+                        </h2>
+                        <div
+                            class="w-12 h-1 bg-blue-500/40 my-4 rounded-full"
+                        ></div>
                         <p
-                            class="text-white font-black text-xl tracking-tighter leading-none"
+                            class="text-[11px] text-slate-400 uppercase font-bold tracking-[0.4em]"
                         >
-                            ADAMA CITY
+                            {{ t("login.subtitle") }}
                         </p>
-                        <p
-                            class="text-blue-500 text-[9px] font-bold tracking-[0.4em] uppercase mt-1"
-                        >
-                            Gallery Admin
-                        </p>
-                    </div>
-                </div>
-
-                <h2
-                    class="text-5xl font-black text-white mb-8 tracking-tight leading-[1.1]"
-                >
-                    Institutional <br />
-                    <span
-                        class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200"
-                        >Access Portal</span
-                    >
-                </h2>
-
-                <p
-                    class="text-slate-500 text-lg leading-relaxed font-medium mb-12"
-                >
-                    Authorized administrative gateway for the Adama City
-                    infrastructure. Multi-layer security protocols active.
-                </p>
-
-                <div class="flex gap-10 border-t border-white/5 pt-10">
-                    <div class="flex flex-col">
-                        <span class="text-white font-bold text-xl tabular-nums"
-                            >v.4.0</span
-                        >
-                        <span
-                            class="text-slate-600 text-[9px] uppercase tracking-widest font-black mt-1"
-                            >Core Engine</span
-                        >
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="text-white font-bold text-xl"
-                            >256-bit</span
-                        >
-                        <span
-                            class="text-slate-600 text-[9px] uppercase tracking-widest font-black mt-1"
-                            >Encryption</span
-                        >
                     </div>
                 </div>
             </div>
         </div>
 
         <div
-            class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-white lg:bg-transparent"
+            class="flex flex-1 items-center justify-center p-4 sm:p-12 lg:p-20"
         >
-            <div class="w-full max-w-[420px]">
+            <div class="w-full max-w-md">
+                <div class="flex flex-col items-center mb-8 lg:hidden">
+                    <img
+                        src="/storage/images/adama.png"
+                        class="h-16 w-auto mb-4"
+                        alt="Logo"
+                    />
+                    <h1
+                        class="text-xl font-black text-slate-900 uppercase tracking-tight"
+                    >
+                        {{ t("login.brand_city") }}
+                    </h1>
+                    <p
+                        class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+                    >
+                        {{ t("login.subtitle") }}
+                    </p>
+                </div>
+
                 <div
-                    class="bg-white p-8 sm:p-10 lg:p-12 rounded-[2.5rem] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.04)] border border-slate-100"
+                    class="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-8 sm:p-12"
                 >
-                    <header class="mb-10 text-center">
-                        <h1
+                    <div class="mb-10 text-center sm:text-left">
+                        <h2
                             class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight"
                         >
-                            System Login
-                        </h1>
-                        <p
-                            class="text-slate-400 text-[10px] font-black mt-3 uppercase tracking-[0.15em]"
-                        >
-                            Secure Personnel Authentication
+                            {{ t("login.welcome") }}
+                        </h2>
+                        <p class="text-slate-400 text-sm mt-2 font-medium">
+                            {{ t("login.description") }}
                         </p>
-                        <div
-                            class="w-10 h-1 bg-blue-600 mx-auto mt-4 rounded-full"
-                        ></div>
-                    </header>
+                    </div>
 
-                    <form @submit.prevent="submit" class="space-y-6">
-                        <div class="group">
+                    <div
+                        v-if="status"
+                        class="mb-6 p-4 rounded-xl bg-green-50 text-green-700 text-sm font-bold border border-green-100"
+                    >
+                        {{ status }}
+                    </div>
+
+                    <form
+                        @submit.prevent="submit"
+                        class="space-y-5"
+                        autocomplete="off"
+                    >
+                        <div class="space-y-2">
                             <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 ml-1 group-focus-within:text-blue-600 transition-colors"
-                                >Administrative Email</label
+                                class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1"
                             >
+                                {{ t("login.email_label") }}
+                            </label>
                             <input
                                 v-model="form.email"
                                 type="email"
-                                placeholder="name@adama.gov.et"
-                                class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-[6px] focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all text-sm font-bold placeholder:text-slate-300"
+                                :placeholder="t('login.email_placeholder')"
+                                class="w-full px-5 py-4 border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm transition-all duration-300"
+                                :class="{ 'border-red-500': form.errors.email }"
                                 required
+                                autofocus
                             />
                         </div>
 
-                        <div class="group">
+                        <div class="space-y-2">
                             <label
-                                class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 ml-1 group-focus-within:text-blue-600 transition-colors"
-                                >Security Key</label
+                                class="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1"
                             >
-                            <input
-                                v-model="form.password"
-                                type="password"
-                                placeholder="••••••••••••"
-                                class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-[6px] focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all text-sm font-bold placeholder:text-slate-300"
-                                required
-                            />
-                            <div class="mt-3 flex justify-end">
-                                <Link
-                                    :href="route('password.request')"
-                                    class="text-[9px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest"
+                                {{ t("login.password_label") }}
+                            </label>
+                            <div class="relative group">
+                                <input
+                                    v-model="form.password"
+                                    :type="showPassword ? 'text' : 'password'"
+                                    placeholder="••••••••"
+                                    class="w-full px-5 py-4 border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm transition-all duration-300"
+                                    :class="{
+                                        'border-red-500': form.errors.password,
+                                    }"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    @click="showPassword = !showPassword"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors p-2"
                                 >
-                                    Trouble accessing?
-                                    <span
-                                        class="text-blue-600 underline underline-offset-4 decoration-2"
-                                        >Forgot Key</span
+                                    <svg
+                                        v-if="!showPassword"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
                                     >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                        />
+                                    </svg>
+                                    <svg
+                                        v-else
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="flex justify-end pr-1">
+                                <Link
+                                    v-if="canResetPassword"
+                                    :href="route('password.request')"
+                                    class="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-wider"
+                                >
+                                    {{ t("login.forgot_password") }}
                                 </Link>
                             </div>
                         </div>
 
-                        <div class="flex items-center pt-2">
+                        <div class="flex items-center px-1">
                             <label
-                                class="flex items-center gap-3 cursor-pointer group/check"
+                                class="flex items-center gap-3 cursor-pointer group w-fit"
                             >
                                 <input
                                     type="checkbox"
                                     v-model="form.remember"
-                                    class="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/10 transition-all cursor-pointer"
+                                    class="peer sr-only"
                                 />
-                                <span
-                                    class="text-[10px] font-bold text-slate-400 group-hover/check:text-slate-900 transition-colors uppercase tracking-tight"
-                                    >Maintain active session</span
+                                <div
+                                    class="h-5 w-5 rounded-lg border-2 border-slate-200 bg-slate-50 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all duration-200 flex items-center justify-center group-hover:border-blue-400"
                                 >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-3.5 w-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="4"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                </div>
+                                <span
+                                    class="text-sm text-slate-500 font-bold group-hover:text-slate-700 transition-colors"
+                                >
+                                    {{ t("login.remember_me") }}
+                                </span>
                             </label>
                         </div>
 
                         <button
-                            :disabled="form.processing"
                             type="submit"
-                            class="w-full bg-[#020617] text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] hover:bg-blue-600 shadow-[0_20px_40px_-10px_rgba(2,6,23,0.3)] hover:shadow-blue-600/30 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+                            :disabled="form.processing"
+                            class="w-full bg-[#0F172A] hover:bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-blue-900/10 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3"
                         >
-                            <span v-if="!form.processing"
-                                >Establish Identity</span
-                            >
+                            <template v-if="!form.processing">
+                                {{ t("login.sign_in_btn") }}
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2.5"
+                                        d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                    />
+                                </svg>
+                            </template>
                             <template v-else>
                                 <svg
-                                    class="animate-spin h-4 w-4 text-blue-400"
+                                    class="animate-spin h-5 w-5 text-white"
                                     viewBox="0 0 24 24"
                                 >
                                     <circle
@@ -213,38 +327,48 @@ const submit = () => {
                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                     ></path>
                                 </svg>
-                                <span>Verifying...</span>
+                                {{ t("login.authenticating") }}
                             </template>
                         </button>
                     </form>
 
-                    <div
-                        class="mt-10 pt-8 border-t border-slate-100 text-center"
-                    >
-                        <p
-                            class="text-[10px] text-slate-400 font-black uppercase tracking-widest"
-                        >
-                            Official Personnel Only
+                    <div class="mt-8 text-center pt-6 border-t border-slate-50">
+                        <p class="text-sm text-slate-500 font-medium">
+                            {{ t("login.no_account") }}
                             <Link
                                 :href="route('register')"
-                                class="text-slate-900 hover:text-blue-600 ml-2 transition-all underline decoration-slate-200 hover:decoration-blue-200 underline-offset-4"
-                                >Request Access</Link
+                                class="text-blue-600 font-bold hover:text-blue-700 ml-1 transition-colors underline underline-offset-4 decoration-2 decoration-blue-100 hover:decoration-blue-400"
                             >
+                                {{ t("login.sign_up") }}
+                            </Link>
                         </p>
                     </div>
                 </div>
 
-                <div class="mt-10 text-center">
-                    <p
-                        class="text-slate-300 text-[9px] font-black uppercase tracking-[0.5em] leading-relaxed"
-                    >
-                        DigitalNational Infrastructure <br />
-                        <span class="opacity-60 text-slate-400"
-                            >&copy; 2026 Adama City Administration</span
-                        >
-                    </p>
-                </div>
+                <p
+                    class="text-center text-[9px] sm:text-[10px] font-black text-slate-400 mt-10 uppercase tracking-[0.25em] px-4"
+                >
+                    {{ t("login.footer") }}
+                </p>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+input::placeholder {
+    @apply text-slate-300 transition-opacity;
+}
+input:focus::placeholder {
+    @apply opacity-50;
+}
+::-webkit-scrollbar {
+    width: 5px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full;
+}
+</style>

@@ -5,127 +5,131 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Entry Ticket - {{ $booking->id }}</title>
     <style>
+        @page { margin: 0; }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
             color: #334155;
             margin: 0;
-            padding: 0;
-            line-height: 1.5;
+            padding: 40px;
+            background-color: #f8fafc;
         }
         .ticket-container {
             width: 100%;
-            max-width: 600px;
-            margin: 20px auto;
+            margin: 0 auto;
             border: 1px solid #e2e8f0;
+            background-color: #ffffff;
             border-radius: 20px;
             overflow: hidden;
-            background-color: #ffffff;
         }
         .header {
             background-color: #4f46e5;
-            color: white;
-            padding: 30px;
-            text-align: center;
+            color: #ffffff;
+            padding: 20px 30px;
+            text-align: left;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .qr-section {
-            text-align: center;
-            padding: 20px;
-            background-color: #f8fafc;
-            border-radius: 15px;
-            margin-bottom: 30px;
-        }
-        .qr-code {
-            width: 180px;
-            height: 180px;
-        }
-        .info-table {
+        .header-table {
             width: 100%;
             border-collapse: collapse;
         }
-        .info-table td {
-            padding: 12px 0;
-            border-bottom: 1px solid #f1f5f9;
+        .logo-container {
+            width: 70px;
+            vertical-align: middle;
         }
-        .label {
-            font-size: 10px;
-            font-weight: bold;
-            color: #94a3b8;
+        .logo-img {
+            width: 60px;
+            height: auto;
+        }
+        .header-text {
+            vertical-align: middle;
+            padding-left: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        .value {
-            font-size: 14px;
-            font-weight: bold;
-            color: #1e293b;
+        .header p {
+            margin: 2px 0 0 0;
+            font-size: 11px;
+            opacity: 0.9;
         }
-        .footer {
-            padding: 20px;
-            background-color: #f1f5f9;
+        .content { padding: 30px; }
+        .qr-section {
             text-align: center;
-            font-size: 10px;
-            color: #64748b;
+            padding: 15px;
+            background-color: #f8fafc;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            border: 1px dashed #e2e8f0;
         }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 50px;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            background-color: #fef3c7;
-            color: #b45309;
+        .qr-code { 
+            width: 140px; 
+            height: 140px; 
+            display: block; 
+            margin: 0 auto; 
         }
+        .info-table { width: 100%; border-collapse: collapse; }
+        .info-table td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+        .label { font-size: 8px; font-weight: bold; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .value { font-size: 12px; font-weight: bold; color: #1e293b; }
+        .footer { padding: 15px; background-color: #f8fafc; text-align: center; font-size: 9px; color: #64748b; border-top: 1px solid #f1f5f9; }
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase; background-color: #fef3c7; color: #b45309; }
+        .status-approved { background-color: #dcfce7; color: #15803d; }
     </style>
 </head>
 <body>
     @php
-        // Mapping Slot IDs to readable times
-        $slotMapping = [
-            'm1' => 'Morning Slot 1 (3:00 - 3:30)',
-            'm2' => 'Morning Slot 2 (4:00 - 4:30)',
-            'm3' => 'Morning Slot 3 (5:00 - 5:30)',
-            'a1' => 'Afternoon Slot 1 (8:00 - 8:30)',
-            'a2' => 'Afternoon Slot 2 (9:00 - 9:30)',
-            'a3' => 'Afternoon Slot 3 (10:00 - 10:30)',
-        ];
-        $displayTime = $slotMapping[$booking->slot_id] ?? $booking->slot_id;
+        // 1. Convert Logo to Base64 (Using public_path directly for stability)
+        $logoPath = public_path('storage/images/adama.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+            $data = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+        }
     @endphp
 
     <div class="ticket-container">
         <div class="header">
-            <h1>Visitor Pass</h1>
-            <p style="margin: 5px 0 0 0; opacity: 0.8;">Booking ID: #{{ $booking->id }}</p>
+            <table class="header-table">
+                <tr>
+                    @if($logoBase64)
+                    <td class="logo-container">
+                        <img src="{{ $logoBase64 }}" class="logo-img">
+                    </td>
+                    @endif
+                    <td class="header-text">
+                        <h1>Adama City Administration</h1>
+                        <p>Gallery Management System | Ref: #{{ str_pad($booking->id, 5, '0', STR_PAD_LEFT) }}</p>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <div class="content">
             <div class="qr-section">
-                <img src="data:image/svg+xml;base64,{{ $qrCode }}" class="qr-code" alt="QR Code">
-                <p style="font-size: 12px; margin-top: 10px; color: #64748b;">Scan at the entrance gate</p>
+                {{-- Ensure the controller sends $qrCode as a PNG base64 string --}}
+                <img src="data:image/png;base64,{{ $qrCode }}" class="qr-code">
+                <p style="font-size: 10px; margin-top: 8px; color: #4f46e5; font-weight: bold;">
+                    TOKEN: {{ $booking->qr_token }}
+                </p>
             </div>
 
             <table class="info-table">
                 <tr>
                     <td width="50%">
-                        <div class="label">Visitor Name</div>
+                        <div class="label">Visitor</div>
                         <div class="value">{{ $booking->visitor_name }}</div>
                     </td>
                     <td width="50%">
-                        <div class="label">Date of Visit</div>
-                        <div class="value">{{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}</div>
+                        <div class="label">Visit Date</div>
+                        <div class="value">{{ \Carbon\Carbon::parse($booking->booking_date)->format('D, M d, Y') }}</div>
                     </td>
                 </tr>
                 <tr>
                     <td>
-                        <div class="label">Visitor Category</div>
+                        <div class="label">Category</div>
                         <div class="value">{{ $booking->visitor_category }} ({{ $booking->visitor_type }})</div>
                     </td>
                     <td>
@@ -135,32 +139,33 @@
                 </tr>
                 <tr>
                     <td colspan="2">
-                        <div class="label">Permitted Halls</div>
-                        <div class="value">
-                            @if($booking->halls && $booking->halls->count() > 0)
-                                {{ $booking->halls->pluck('name')->implode(', ') }}
-                            @else
-                                General Access
-                            @endif
+                        <div class="label">Access Granted For</div>
+                        <div class="value" style="color: #4f46e5;">
+                            {{-- Corrected to use the single 'hall' relationship --}}
+                            {{ $booking->hall ? $booking->hall->name : 'General Access' }}
                         </div>
                     </td>
                 </tr>
                 <tr>
                     <td>
-                        <div class="label">Entry Status</div>
-                        <div class="status-badge">{{ strtoupper($booking->status) }}</div>
+                        <div class="label">Pass Status</div>
+                        <div class="status-badge {{ $booking->status === 'approved' ? 'status-approved' : '' }}">
+                            {{ strtoupper($booking->status) }}
+                        </div>
                     </td>
                     <td>
-                        <div class="label">Assigned Time Slot</div>
-                        <div class="value" style="color: #4f46e5;">{{ $displayTime }}</div>
+                        <div class="label">Visit Time</div>
+                        {{-- Uses the readable_slot attribute defined in your Booking model --}}
+                        <div class="value">{{ $booking->readable_slot }}</div>
                     </td>
                 </tr>
             </table>
         </div>
 
         <div class="footer">
-            Generated on {{ date('Y-m-d H:i:s') }} (EAT)<br>
-            Please bring a valid ID along with this ticket.
+            <strong>OFFICIAL VISITOR PASS</strong><br>
+            Please present this ticket at the gate with a valid ID.<br>
+            <span style="color: #94a3b8;">Issued at: {{ date('Y-m-d H:i') }}</span>
         </div>
     </div>
 </body>

@@ -20,170 +20,201 @@ use Inertia\Response;
 class BookingController extends Controller
 {
     /**
-     * Dashboard view with personal stats
+     * Dashboard
      */
     public function index(): Response
     {
         $userId = Auth::id();
-        
-        $recentBookings = Booking::with('halls')
-            ->where('user_id', $userId)
-            ->latest()
-            ->limit(5)
-            ->get();
 
         return Inertia::render('Visitor/Dashboard', [
-            'bookings' => $recentBookings,
+            'bookings' => Booking::with('hall')
+                ->where('user_id', $userId)
+                ->latest()
+                ->limit(5)
+                ->get(),
             'stats' => [
-                'pendingVisits'   => Booking::where('user_id', $userId)->where('status', 'pending')->count(),
-                'completedVisits' => Booking::where('user_id', $userId)->where('status', 'Approved')->count(),
-                'totalBookings'   => Booking::where('user_id', $userId)->count(),
+                'pendingVisits' => Booking::where('user_id', $userId)->where('status', 'pending')->count(),
+                'completedVisits' => Booking::where('user_id', $userId)->where('status', 'approved')->count(),
+                'totalBookings' => Booking::where('user_id', $userId)->count(),
             ],
         ]);
     }
 
     /**
-     * Show booking creation form
+     * Create form
      */
     public function create(): Response
     {
-        // Get active halls to populate the selection step
-        $halls = Hall::where('is_active', true)
-            ->select('id', 'name')
-            ->get();
-
         return Inertia::render('Visitor/BookingCreate', [
-            'halls' => $halls
+            'halls' => Hall::where('is_active', true)
+                ->select('id', 'name', 'location')
+                ->get()
         ]);
     }
 
     /**
-     * Store a new booking in the database
+     * Store booking
      */
     public function store(Request $request): RedirectResponse
     {
+        // ✅ VALIDATION
         $request->validate([
-            'hall_ids'           => 'required|array|min:1',
-            'hall_ids.*'         => 'exists:halls,id',
-            'visitor_category'   => 'required|in:VIP,Normal',
-            'visitor_type'       => 'required|string',
-            'organization_name'  => 'nullable|string|max:255',
-            'number_of_visitors' => 'required|integer|min:1',
-            'booking_date'       => 'required|date|after_or_equal:today',
-            'slot_id'            => 'required|string', 
-            'attachment'         => $request->visitor_category === 'VIP' 
-                                    ? 'required|file|mimes:pdf,jpg,png,docx|max:5120' 
-                                    : 'nullable|file|max:5120',
+            'hall_ids' => 'required|array|min:1',
+            'hall_ids.*' => 'exists:halls,id',
+            'visitor_category' => 'required|in:VIP,Normal',
+            'visitor_type' => 'required|string',
+            'organization_name' => 'nullable|string|max:255',
+            'number_of_visitors' => 'required|integer|min:1|max:50',
+            'booking_date' => 'required|date|after_or_equal:today',
+            'slot_id' => 'required|string',
+            'attachment' => $request->visitor_category === 'VIP'
+                ? 'required|file|mimes:pdf,jpg,jpeg,png|max:5120'
+                : 'nullable|file|max:5120',
         ]);
+
+        $userId = Auth::id();
+
+        // ❌ STRICT RULE: only ONE booking per user per date
+        $existingBooking = Booking::where('user_id', $userId)
+            ->whereDate('booking_date', $request->booking_date)
+            ->whereIn('status', ['pending', 'approved', 'attended'])
+            ->first();
+
+        if ($existingBooking) {
+            return redirect()->back()
+                ->with('error', 'You already have a booking on this date. Please choose another date & time.')
+                ->withInput();
+        }
+
+        $attachmentPath = null;
 
         try {
             DB::beginTransaction();
 
             $user = Auth::user();
-            $attachmentPath = null;
 
+            // file upload
             if ($request->hasFile('attachment')) {
-                $attachmentPath = $request->file('attachment')->store('bookings/attachments', 'public');
+                $attachmentPath = $request->file('attachment')
+                    ->store('bookings/attachments', 'public');
             }
 
-            // Logic to determine name: check profile fields first
+            // name build
             $fullName = trim(($user->firstName ?? '') . ' ' . ($user->lastName ?? ''));
-            if (empty($fullName)) {
-                $fullName = $user->name ?? 'Guest User';
+            if (!$fullName) {
+                $fullName = $user->name ?? 'Guest Visitor';
             }
 
-            // CREATE BOOKING
-            // Note: qr_token is handled automatically by the Booking Model boot method
-            $booking = Booking::create([
-                'user_id'            => $user->id,
-                'hall_id'            => $request->hall_ids[0], 
-                'visitor_name'       => $fullName,
-                'visitor_category'   => $request->visitor_category,
-                'visitor_type'       => $request->visitor_type,
-                'organization_name'  => $request->organization_name,
+            // create booking
+            Booking::create([
+                'user_id' => $userId,
+                'hall_id' => $request->hall_ids[0],
+                'visitor_name' => $fullName,
+                'visitor_category' => $request->visitor_category,
+                'visitor_type' => $request->visitor_type,
+                'organization_name' => $request->organization_name,
                 'number_of_visitors' => $request->number_of_visitors,
-                'booking_date'       => $request->booking_date,
-                'slot_id'            => $request->slot_id, 
-                'status'             => 'pending',
-                'attachment_path'    => $attachmentPath,
+                'booking_date' => $request->booking_date,
+                'slot_id' => strtolower($request->slot_id),
+                'status' => 'pending',
+                'attachment' => $attachmentPath,
+                'qr_token' => 'ACAGMS-' . strtoupper(bin2hex(random_bytes(4))),
             ]);
-
-            // Sync many-to-many halls
-            $booking->halls()->sync($request->hall_ids);
 
             DB::commit();
 
-            return redirect()->route('visitor.history')->with('success', 'Visit booked successfully!');
+            return redirect()
+                ->route('visitor.history')
+                ->with('success', 'Booking submitted successfully!');
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($attachmentPath) {
+                Storage::disk('public')->delete($attachmentPath);
+            }
+
             Log::error("Booking Creation Error: " . $e->getMessage());
+
             return redirect()->back()
-                ->withErrors(['error' => 'An error occurred while saving your booking.'])
+                ->with('error', 'Failed to save booking. Please try again.')
                 ->withInput();
         }
     }
 
     /**
-     * Display full history of user activity
+     * History
      */
     public function history(): Response
     {
         $userId = Auth::id();
-        
+
         return Inertia::render('Visitor/History', [
-            'bookings'  => Booking::with('halls')->where('user_id', $userId)->latest()->get(),
-            'feedbacks' => Feedback::where('user_id', $userId)->latest()->get()
+            'bookings' => Booking::with('hall')
+                ->where('user_id', $userId)
+                ->latest()
+                ->get(),
+            'feedbacks' => Feedback::where('user_id', $userId)
+                ->latest()
+                ->get()
         ]);
     }
 
     /**
-     * Generate and download PDF Ticket
+     * Download ticket
      */
-    public function downloadTicket(Booking $booking)
+    public function downloadTicket($id)
     {
+        $booking = Booking::with('hall')->findOrFail($id);
+
         if ($booking->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized action.');
+            abort(403);
         }
 
-        $booking->load('halls');
+        try {
+            $qrCodeData = QrCode::format('png')
+                ->size(200)
+                ->margin(1)
+                ->errorCorrection('H')
+                ->generate($booking->qr_token);
 
-        // Generate QR Code
-        $qrCode = base64_encode(QrCode::format('svg')
-            ->size(200)
-            ->margin(1)
-            ->errorCorrection('H')
-            ->generate($booking->qr_token));
+            $qrCodeBase64 = base64_encode($qrCodeData);
 
-        $pdf = Pdf::loadView('pdf.ticket', [
-            'booking' => $booking,
-            'qrCode'  => $qrCode
-        ]);
+            $pdf = Pdf::loadView('pdf.ticket', [
+                'booking' => $booking,
+                'qrCode' => $qrCodeBase64
+            ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('ACAGMS_Ticket_' . $booking->id . '.pdf');
+            return $pdf->download("Ticket_{$booking->qr_token}.pdf");
+
+        } catch (\Exception $e) {
+            Log::error("Ticket Error: " . $e->getMessage());
+            return back()->with('error', 'Could not generate ticket.');
+        }
     }
 
     /**
-     * Cancel a booking
+     * Delete booking
      */
     public function destroy(Booking $booking): RedirectResponse
     {
         if ($booking->user_id !== Auth::id()) {
-            return redirect()->back()->with('error', 'Unauthorized.');
+            return back()->with('error', 'Unauthorized.');
         }
 
         try {
-            if ($booking->attachment_path) {
-                Storage::disk('public')->delete($booking->attachment_path);
+            if ($booking->attachment) {
+                Storage::disk('public')->delete($booking->attachment);
             }
 
-            $booking->halls()->detach(); 
             $booking->delete();
 
-            return redirect()->back()->with('success', 'Booking has been cancelled.');
+            return back()->with('success', 'Booking cancelled successfully.');
+
         } catch (\Exception $e) {
-            Log::error("Booking Deletion Error: " . $e->getMessage());
-            return redirect()->back()->with('error', 'Could not cancel booking.');
+            Log::error("Delete Error: " . $e->getMessage());
+
+            return back()->with('error', 'Deletion failed.');
         }
     }
 }

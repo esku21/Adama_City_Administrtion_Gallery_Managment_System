@@ -7,6 +7,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class User extends Authenticatable
 {
@@ -14,39 +16,33 @@ class User extends Authenticatable
 
     /**
      * The attributes that are mass assignable.
-     * UPDATED: Added 'name', 'phone', 'gender', and 'hall_id'
+     * Note: 'name' is EXCLUDED because it is a virtual column in your migration.
      */
     protected $fillable = [
         'firstName',
         'lastName',
-        'name',        // Added for compatibility with your Vue form
         'email',
         'password',
         'phone_no',
-        'phone',       // Added for compatibility with your Vue form
-        'gender',      // Added
+        'gender',
+        'profile_photo_path',
         'visitorType',
         'citizenship',
         'role',
-        'hall_id',     // CRITICAL: Must be here to save the assignment
+        'hall_id', 
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
     /**
-     * The accessors to append to the model's array form.
+     * Since 'name' is now handled by the database (virtualAs), 
+     * we only use $appends if you need a custom logic attribute.
      */
     protected $appends = ['full_name'];
 
-    /**
-     * Get the attributes that should be cast.
-     */
     protected function casts(): array
     {
         return [
@@ -55,45 +51,42 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Accessor for Full Name.
-     */
-    public function getFullNameAttribute(): string
+    /* ACCESSORS */
+
+    protected function fullName(): Attribute
     {
-        // Null safety in case firstName/lastName are empty
-        return trim("{$this->firstName} {$this->lastName}") ?: (string)$this->name;
+        return Attribute::make(
+            get: fn () => trim("{$this->firstName} {$this->lastName}") ?: ($this->firstName ?? 'User'),
+        );
     }
 
-    /**
-     * Relationship: A guide belongs to a hall.
-     * FIXES: RelationNotFoundException
-     */
-    public function hall(): BelongsTo
+    /* RELATIONSHIPS */
+
+    public function announcements(): BelongsToMany
     {
-        return $this->belongsTo(Hall::class, 'hall_id');
+        return $this->belongsToMany(Announcement::class, 'announcement_user')
+                    ->withPivot('is_read')
+                    ->withTimestamps();
     }
 
-    /**
-     * Relationship: A user can have many bookings.
-     */
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'user_id');
     }
 
-    /**
-     * Relationship: A user can have many feedbacks.
-     */
     public function feedbacks(): HasMany
     {
         return $this->hasMany(Feedback::class, 'user_id');
     }
 
-    /**
-     * Helper to check if the user is an admin.
-     */
-    public function isAdmin(): bool
+    public function hall(): BelongsTo
     {
-        return $this->role === 'admin';
+        return $this->belongsTo(Hall::class, 'hall_id');
     }
+
+    /* ROLE HELPERS */
+
+    public function isAdmin(): bool { return strtolower($this->role ?? '') === 'admin'; }
+    public function isGuide(): bool { return strtolower($this->role ?? '') === 'guide'; }
+    public function isVisitor(): bool { return strtolower($this->role ?? '') === 'visitor'; }
 }
