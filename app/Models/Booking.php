@@ -1,6 +1,5 @@
 <?php
-
-namespace App\Models;
+namespace  App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +13,7 @@ class Booking extends Model
 
     protected $fillable = [
         'user_id',
-        'hall_id', 
+        'hall_id',
         'visitor_name',
         'visitor_category',
         'visitor_type',
@@ -41,8 +40,8 @@ class Booking extends Model
      */
     public function getAttachmentUrlAttribute()
     {
-        return $this->attachment 
-            ? asset('storage/' . $this->attachment) 
+        return $this->attachment
+            ? asset('storage/' . $this->attachment)
             : null;
     }
 

@@ -30,6 +30,7 @@ watch(
 );
 
 const searchQuery = ref("");
+const dateFilter = ref("");
 
 const deleteFeedback = (id) => {
     if (confirm(t("feedbacks_for_guide.delete_confirm"))) {
@@ -41,13 +42,16 @@ const deleteFeedback = (id) => {
 
 const filteredFeedbacks = computed(() => {
     return props.feedbacks.filter((fb) => {
-        const userName =
-            `${fb.user?.firstName} ${fb.user?.lastName}`.toLowerCase();
         const message = fb.message?.toLowerCase() || "";
-        return (
-            userName.includes(searchQuery.value.toLowerCase()) ||
-            message.includes(searchQuery.value.toLowerCase())
-        );
+        const matchesSearch = message.includes(searchQuery.value.toLowerCase());
+        
+        // Date filter - if date is selected, filter by it
+        if (dateFilter.value) {
+            const feedbackDate = fb.created_at ? new Date(fb.created_at).toISOString().split('T')[0] : null;
+            return matchesSearch && feedbackDate === dateFilter.value;
+        }
+        
+        return matchesSearch;
     });
 });
 </script>
@@ -99,14 +103,11 @@ const filteredFeedbacks = computed(() => {
                 <div class="relative flex items-center group">
                     <span
                         class="material-icons-outlined absolute left-4 text-slate-400 text-lg group-focus-within:text-indigo-500 transition-colors pointer-events-none"
-                        >search</span
+                        >event</span
                     >
                     <input
-                        v-model="searchQuery"
-                        type="text"
-                        :placeholder="
-                            t('feedbacks_for_guide.search_placeholder')
-                        "
+                        v-model="dateFilter"
+                        type="date"
                         class="bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-xs w-72 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none font-bold text-slate-700"
                     />
                 </div>
@@ -192,7 +193,7 @@ const filteredFeedbacks = computed(() => {
                                 :key="i"
                                 class="material-icons text-[14px]"
                                 :class="
-                                    i <= feedback.rating
+                                    i <= (feedback.rating || 0)
                                         ? 'text-amber-400'
                                         : 'text-slate-200'
                                 "
@@ -227,6 +228,8 @@ const filteredFeedbacks = computed(() => {
 </template>
 
 <style scoped>
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons+Outlined");
+
 .material-icons-outlined,
 .material-icons {
     display: flex;

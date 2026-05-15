@@ -58,6 +58,16 @@ Route::get('/force-admin-login', function (Request $request) {
     return redirect()->route('admin.dashboard');
 })->name('force-admin-login');
 
+Route::get('/force-guide-login', function (Request $request) {
+    $guide = \App\Models\Guide::where('is_active', true)->first();
+    if (!$guide) {
+        return redirect()->back()->with('error', 'No active guide account found.');
+    }
+    Auth::guard('guide')->login($guide);
+    $request->session()->regenerate();
+    return redirect()->route('guide.dashboard');
+})->name('force-guide-login');
+
 Route::get('/fix-admin', function () {
     User::updateOrCreate(
         ['email' => 'admin@acagms.com'],

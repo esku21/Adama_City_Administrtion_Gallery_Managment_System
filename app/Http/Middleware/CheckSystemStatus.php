@@ -23,7 +23,6 @@ class CheckSystemStatus
         }
 
         // 2. BYPASS LIST: Routes that MUST always work
-        // Added 'admin/dashboard' to bypass check if user is already an admin
         $isBypassRoute = $request->is('login', 'logout', 'maintenance', 'force-admin-login', 'fix-admin') || 
                          $request->routeIs('login', 'logout', 'maintenance.page');
 
@@ -32,8 +31,6 @@ class CheckSystemStatus
         }
 
         // 3. ADMIN BYPASS (CRITICAL FIX)
-        // We check ID 2 (from your screenshot) and the 'admin' role.
-        // This MUST happen before checking the system status.
         if (Auth::check()) {
             $user = Auth::user();
             if ($user->id == 2 || strtolower($user->role ?? '') === 'admin' || $user->email === 'admin@acagms.com') {

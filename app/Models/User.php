@@ -37,6 +37,22 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $visible = [
+        'id',
+        'firstName',
+        'lastName',
+        'name',
+        'email',
+        'phone_no',
+        'gender',
+        'visitorType',
+        'citizenship',
+        'role',
+        'hall_id',
+        'created_at',
+        'updated_at',
+    ];
+
     /**
      * Since 'name' is now handled by the database (virtualAs), 
      * we only use $appends if you need a custom logic attribute.

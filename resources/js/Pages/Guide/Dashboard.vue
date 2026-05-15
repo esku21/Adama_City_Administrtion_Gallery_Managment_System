@@ -83,7 +83,7 @@ const getStatusClass = (status) => {
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div
                         class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
                     >
@@ -97,7 +97,7 @@ const getStatusClass = (status) => {
                                     {{ $t("guide_dashboard.total_bookings") }}
                                 </p>
                                 <p class="text-4xl font-black mt-2">
-                                    {{ stats?.total_bookings ?? 0 }}
+                                    {{ stats?.total_bookings !== undefined && stats?.total_bookings !== null ? stats.total_bookings : 0 }}
                                 </p>
                                 <p
                                     class="text-[10px] mt-2 font-medium opacity-70"
@@ -116,34 +116,6 @@ const getStatusClass = (status) => {
                         class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
                     >
                         <div
-                            class="bg-gradient-to-br from-orange-400 to-orange-600 p-6 rounded-xl text-white relative overflow-hidden h-full"
-                        >
-                            <div class="relative z-10">
-                                <p
-                                    class="text-xs font-black uppercase tracking-tighter opacity-80"
-                                >
-                                    {{ $t("guide_dashboard.pending_today") }}
-                                </p>
-                                <p class="text-4xl font-black mt-2">
-                                    {{ stats?.pending_today ?? 0 }}
-                                </p>
-                                <p
-                                    class="text-[10px] mt-2 font-medium opacity-70"
-                                >
-                                    {{ $t("guide_dashboard.pending_desc") }}
-                                </p>
-                            </div>
-                            <span
-                                class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"
-                                >⏳</span
-                            >
-                        </div>
-                    </div>
-
-                    <div
-                        class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
-                    >
-                        <div
                             class="bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 rounded-xl text-white relative overflow-hidden h-full"
                         >
                             <div class="relative z-10">
@@ -153,7 +125,7 @@ const getStatusClass = (status) => {
                                     {{ $t("guide_dashboard.arrived_today") }}
                                 </p>
                                 <p class="text-4xl font-black mt-2">
-                                    {{ stats?.arrived_today ?? 0 }}
+                                    {{ stats?.arrived_today !== undefined && stats?.arrived_today !== null ? stats.arrived_today : 0 }}
                                 </p>
                                 <p
                                     class="text-[10px] mt-2 font-medium opacity-70"
@@ -238,8 +210,9 @@ const getStatusClass = (status) => {
                                                 class="font-bold text-gray-900"
                                             >
                                                 {{
-                                                    booking.user?.name ||
-                                                    "Visitor"
+                                                    booking.user?.firstName && booking.user?.lastName
+                                                        ? booking.user.firstName + " " + booking.user.lastName
+                                                        : (booking.visitor_name || "Visitor")
                                                 }}
                                             </div>
                                             <div class="text-xs text-gray-500">
@@ -256,7 +229,7 @@ const getStatusClass = (status) => {
                                         <td
                                             class="px-6 py-4 text-center text-sm font-bold text-gray-600"
                                         >
-                                            {{ booking.visit_slot }}
+                                            {{ booking.readable_slot }}
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <span
@@ -275,7 +248,7 @@ const getStatusClass = (status) => {
                                         >
                                             <button
                                                 v-if="
-                                                    booking.status !== 'arrived'
+                                                    booking.status === 'approved'
                                                 "
                                                 @click="
                                                     updateStatus(

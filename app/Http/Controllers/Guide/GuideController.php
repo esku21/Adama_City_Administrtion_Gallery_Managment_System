@@ -34,8 +34,8 @@ class GuideController extends Controller
             'a3' => '04:00 PM - 04:30 PM',
         ];
 
-        // Base Query: Restricted to this guide's assigned hall
-        $hallBookings = Booking::where('hall_id', $guide->hall_id);
+        // Base Query: Filter by guide's hall_id (which equals guide's id in your setup)
+        $hallBookings = Booking::where('hall_id', $guide->id);
 
         $stats = [
             'total_bookings' => (clone $hallBookings)->count(),
@@ -45,12 +45,12 @@ class GuideController extends Controller
                                 ->count(),
             'arrived_today'  => (clone $hallBookings)
                                 ->whereDate('booking_date', $selectedDate)
-                                ->where('status', 'Arrived')
+                                ->where('status', 'arrived')
                                 ->count(),
         ];
 
         $bookings = (clone $hallBookings)
-            ->with(['hall']) 
+            ->with(['hall', 'user']) 
             ->whereDate('booking_date', '>=', $today) 
             ->orderBy('booking_date', 'asc')
             ->get()
@@ -64,7 +64,14 @@ class GuideController extends Controller
                                         ? $booking->booking_date->toDateString() 
                                         : $booking->booking_date,
                     'hall_names'    => $booking->hall->name ?? 'Station Hall', 
-                    'readable_slot' => $timeMapping[strtolower($booking->slot_id)] ?? ($booking->slot_id ?? 'N/A'), 
+                    'readable_slot' => $timeMapping[strtolower($booking->slot_id)] ?? ($booking->slot_id ?? 'N/A'),
+                    'user'          => $booking->user ? [
+                        'id' => $booking->user->id,
+                        'name' => $booking->user->name,
+                        'firstName' => $booking->user->firstName,
+                        'lastName' => $booking->user->lastName,
+                        'email' => $booking->user->email,
+                    ] : null,
                 ];
             });
 
