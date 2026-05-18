@@ -80,7 +80,6 @@ const formatDate = (dateString) => {
         <template #header>{{ t("nav.history") }}</template>
 
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 animate-in">
-            <!-- Responsive Tab Navigation -->
             <div
                 class="flex border-b border-slate-200 mb-6 sm:mb-8 gap-4 sm:gap-8 overflow-x-auto no-scrollbar"
             >
@@ -108,7 +107,6 @@ const formatDate = (dateString) => {
                 </button>
             </div>
 
-            <!-- Bookings Tab -->
             <div v-if="activeTab === 'bookings'">
                 <div
                     v-if="bookings.length === 0"
@@ -118,7 +116,6 @@ const formatDate = (dateString) => {
                 </div>
 
                 <div v-else>
-                    <!-- Mobile View: Card Layout -->
                     <div class="grid grid-cols-1 gap-4 lg:hidden">
                         <div
                             v-for="booking in bookings"
@@ -167,8 +164,9 @@ const formatDate = (dateString) => {
                                 >
                                     <span
                                         class="block text-[8px] uppercase text-slate-400 mb-0.5"
-                                        >{{ t("dashboard.table_hall") }}</span
                                     >
+                                        {{ t("dashboard.table_hall") }}
+                                    </span>
                                     {{ getHallName(booking) }}
                                 </div>
                             </div>
@@ -226,7 +224,6 @@ const formatDate = (dateString) => {
                         </div>
                     </div>
 
-                    <!-- PC/Tablet View: Table Layout -->
                     <div
                         class="hidden lg:block bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden"
                     >
@@ -301,10 +298,9 @@ const formatDate = (dateString) => {
                                                 />
                                                 <span
                                                     class="text-[8px] font-black text-slate-400 uppercase"
-                                                    >{{
-                                                        t("history.zoom")
-                                                    }}</span
                                                 >
+                                                    {{ t("history.zoom") }}
+                                                </span>
                                             </div>
                                             <div
                                                 v-else
@@ -409,7 +405,6 @@ const formatDate = (dateString) => {
                 </div>
             </div>
 
-            <!-- Feedback Tab -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div
                     v-if="feedbacks.length === 0"
@@ -428,9 +423,9 @@ const formatDate = (dateString) => {
                         >
                             {{ t("nav.bookings") }} #{{ item.booking_id }}
                         </span>
-                        <span class="text-[10px] font-bold text-slate-400">{{
-                            formatDate(item.created_at)
-                        }}</span>
+                        <span class="text-[10px] font-bold text-slate-400">
+                            {{ formatDate(item.created_at) }}
+                        </span>
                     </div>
                     <p
                         class="text-slate-600 text-sm leading-relaxed mb-6 italic"
@@ -447,15 +442,15 @@ const formatDate = (dateString) => {
                                     : 'text-slate-200'
                             "
                             class="text-xl"
-                            >★</span
                         >
+                            ★
+                        </span>
                     </div>
                 </div>
             </div>
         </div>
     </VisitorLayout>
 
-    <!-- QR Modal - Responsive Width -->
     <div
         v-if="showQrModal"
         class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"

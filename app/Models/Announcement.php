@@ -13,8 +13,10 @@ class Announcement extends Model
 
     /**
      * The attributes that are mass assignable.
+     * ✅ FIXED: Added 'user_id' to prevent mass-assignment crashes during booking updates/rejections
      */
     protected $fillable = [
+        'user_id',
         'title',
         'content',
         'type',
@@ -28,19 +30,20 @@ class Announcement extends Model
      * Ensures dates are returned as Carbon objects for easy formatting.
      */
     protected $casts = [
-        'target_date' => 'date',
+        'target_date'     => 'date',
         'reschedule_date' => 'date',
-        'is_active' => 'boolean',
+        'is_active'       => 'boolean',
     ];
 
     /*
     |--------------------------------------------------------------------------
     | RELATIONSHIPS
     |--------------------------------------------------------------------------
+    |
     */
 
     /**
-     * Users who have received/read this announcement.
+     * Users who have received/read this announcement via the pivot bridge.
      */
     public function users(): BelongsToMany 
     {
@@ -61,6 +64,7 @@ class Announcement extends Model
     |--------------------------------------------------------------------------
     | SCOPES
     |--------------------------------------------------------------------------
+    |
     */
 
     /**

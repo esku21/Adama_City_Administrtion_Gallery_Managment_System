@@ -21,15 +21,18 @@ class BookingController extends Controller
      */
     public function index(): Response
     {
-        $bookings = Booking::with(['hall', 'user'])
+        // ✅ FIXED: Changed singular 'hall' relation to plural 'halls' to match your model relationship
+        $bookings = Booking::with(['halls', 'user'])
             ->latest()
             ->get()
             ->map(function ($booking) {
                 // Generates the public URL for the frontend.
-                // It checks if the column 'attachment' has a value and if the file exists.
                 $booking->attachment_url = ($booking->attachment && Storage::disk('public')->exists($booking->attachment)) 
                     ? asset('storage/' . $booking->attachment) 
                     : null;
+                
+                // ✅ FIXED: Append a safe fallback 'hall_id' string or object value for your Vue components
+                $booking->hall_id = $booking->halls->first()->id ?? null;
                 
                 return $booking;
             });
@@ -54,9 +57,9 @@ class BookingController extends Controller
         ]);
 
         try {
-            Booking::create([
+            // ✅ FIXED: Remove hall_id from the direct Booking field creation mapping
+            $booking = Booking::create([
                 'user_id'            => auth()->id(), 
-                'hall_id'            => $validated['hall_id'],
                 'visitor_name'       => $validated['visitor_name'],
                 'booking_date'       => $validated['booking_date'],
                 'number_of_visitors' => $validated['number_of_visitors'],
@@ -65,6 +68,9 @@ class BookingController extends Controller
                 'visitor_type'       => 'Manual',
                 'qr_token'           => 'ACAGMS-ADM-' . strtoupper(Str::random(8)),
             ]);
+
+            // ✅ FIXED: Attach the selected hall to the many-to-many pivot table layout
+            $booking->halls()->sync([$validated['hall_id']]);
 
             return back()->with('success', 'Manual booking authorized successfully.');
         } catch (\Exception $e) {
@@ -88,7 +94,15 @@ class BookingController extends Controller
         ]);
 
         try {
+            // ✅ FIXED: Isolate hall_id so it does not update straight into the bookings column structure
+            $hallId = $validated['hall_id'];
+            unset($validated['hall_id']);
+
+            // Update local booking data fields safely
             $booking->update($validated);
+
+            // ✅ FIXED: Sync the relationship updates cleanly over the pivot bridge
+            $booking->halls()->sync([$hallId]);
 
             // Handle rejection announcements if a reschedule date is provided
             if ($booking->status === 'rejected' && $request->reschedule_date) {
@@ -104,7 +118,7 @@ class BookingController extends Controller
             return back()->with('success', 'Registry updated successfully.');
         } catch (\Exception $e) {
             Log::error("Admin Update Error: " . $e->getMessage());
-            return back()->withErrors(['error' => 'Update failed.']);
+            return back()->withErrors(['error' => 'Update failed: ' . $e->getMessage()]);
         }
     }
 
@@ -118,6 +132,9 @@ class BookingController extends Controller
             if ($booking->attachment && Storage::disk('public')->exists($booking->attachment)) {
                 Storage::disk('public')->delete($booking->attachment);
             }
+
+            // ✅ FIXED: Safely sever pivot references before execution to avoid dangling database table items
+            $booking->halls()->detach();
 
             $booking->delete();
             return back()->with('success', 'Record and file purged successfully.');

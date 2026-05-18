@@ -16,6 +16,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -27,7 +28,7 @@ class BookingController extends Controller
         $userId = Auth::id();
 
         return Inertia::render('Visitor/Dashboard', [
-            'bookings' => Booking::with('hall')
+            'bookings' => Booking::with('halls')
                 ->where('user_id', $userId)
                 ->latest()
                 ->limit(5)
@@ -57,7 +58,7 @@ class BookingController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        // ✅ VALIDATION
+        // Validate incoming multi-select arrays
         $request->validate([
             'hall_ids' => 'required|array|min:1',
             'hall_ids.*' => 'exists:halls,id',
@@ -74,15 +75,15 @@ class BookingController extends Controller
 
         $userId = Auth::id();
 
-        // ❌ STRICT RULE: only ONE booking per user per date
-        $existingBooking = Booking::where('user_id', $userId)
+        // CORE RULE: One user only books one visit bundle per day
+        $alreadyBooked = Booking::where('user_id', $userId)
             ->whereDate('booking_date', $request->booking_date)
             ->whereIn('status', ['pending', 'approved', 'attended'])
-            ->first();
+            ->exists();
 
-        if ($existingBooking) {
+        if ($alreadyBooked) {
             return redirect()->back()
-                ->with('error', 'You already have a booking on this date. Please choose another date & time.')
+                ->with('error', "You already have an active booking on this date. Please modify your existing request or select another day and Time.")
                 ->withInput();
         }
 
@@ -93,22 +94,21 @@ class BookingController extends Controller
 
             $user = Auth::user();
 
-            // file upload
+            // Handle unique file upload once
             if ($request->hasFile('attachment')) {
                 $attachmentPath = $request->file('attachment')
                     ->store('bookings/attachments', 'public');
             }
 
-            // name build
+            // Build structural full name
             $fullName = trim(($user->firstName ?? '') . ' ' . ($user->lastName ?? ''));
             if (!$fullName) {
                 $fullName = $user->name ?? 'Guest Visitor';
             }
 
-            // create booking
-            Booking::create([
+            // Create EXACTLY ONE booking parent row
+            $booking = Booking::create([
                 'user_id' => $userId,
-                'hall_id' => $request->hall_ids[0],
                 'visitor_name' => $fullName,
                 'visitor_category' => $request->visitor_category,
                 'visitor_type' => $request->visitor_type,
@@ -121,11 +121,39 @@ class BookingController extends Controller
                 'qr_token' => 'ACAGMS-' . strtoupper(bin2hex(random_bytes(4))),
             ]);
 
+            // Global system backup fallback user ID just in case a hall doesn't have an assigned guide
+            $globalFallbackGuideId = DB::table('users')->where('role', 'guide')->value('id') 
+                ?? DB::table('users')->where('role', 'staff')->value('id') 
+                ?? DB::table('users')->value('id');
+
+            if (!$globalFallbackGuideId) {
+                throw new \Exception("No user accounts found in the system to assign as a tour guide.");
+            }
+
+            // Map selections dynamically based on which guide owns which hall
+            $pivotData = [];
+            foreach ($request->hall_ids as $hallId) {
+                
+                // ✅ FIXED DYNAMIC LOOKUP: Swapped 'user_id' to 'id' to find the guide's ID assigned to the hall
+                $actualGuideId = DB::table('halls')->where('id', $hallId)->value('id');
+
+                $pivotData[] = [
+                    'booking_id' => $booking->id,
+                    'hall_id'    => $hallId,
+                    'guide_id'   => $actualGuideId ?? $globalFallbackGuideId, // Uses the real guide, falls back if empty
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            // Perform a secure mass data injection into pivot table
+            DB::table('booking_hall_guide')->insert($pivotData);
+
             DB::commit();
 
             return redirect()
                 ->route('visitor.history')
-                ->with('success', 'Booking submitted successfully!');
+                ->with('success', 'Booking bundle submitted successfully!');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -137,7 +165,7 @@ class BookingController extends Controller
             Log::error("Booking Creation Error: " . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Failed to save booking. Please try again.')
+                ->with('error', 'Failed to save booking. Details: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -150,7 +178,7 @@ class BookingController extends Controller
         $userId = Auth::id();
 
         return Inertia::render('Visitor/History', [
-            'bookings' => Booking::with('hall')
+            'bookings' => Booking::with('halls')
                 ->where('user_id', $userId)
                 ->latest()
                 ->get(),
@@ -165,7 +193,7 @@ class BookingController extends Controller
      */
     public function downloadTicket($id)
     {
-        $booking = Booking::with('hall')->findOrFail($id);
+        $booking = Booking::with('halls')->findOrFail($id);
 
         if ($booking->user_id !== Auth::id()) {
             abort(403);
@@ -180,12 +208,11 @@ class BookingController extends Controller
 
             $qrCodeBase64 = base64_encode($qrCodeData);
 
-            $pdf = Pdf::loadView('pdf.ticket', [
+            return Pdf::loadView('pdf.ticket', [
                 'booking' => $booking,
                 'qrCode' => $qrCodeBase64
-            ])->setPaper('a4', 'portrait');
-
-            return $pdf->download("Ticket_{$booking->qr_token}.pdf");
+            ])->setPaper('a4', 'portrait')
+              ->download("Ticket_{$booking->qr_token}.pdf");
 
         } catch (\Exception $e) {
             Log::error("Ticket Error: " . $e->getMessage());
@@ -213,7 +240,6 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             Log::error("Delete Error: " . $e->getMessage());
-
             return back()->with('error', 'Deletion failed.');
         }
     }

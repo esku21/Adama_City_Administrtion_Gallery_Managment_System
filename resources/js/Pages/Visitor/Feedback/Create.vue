@@ -1,7 +1,7 @@
 <script setup>
 import VisitorLayout from "@/Layouts/VisitorLayout.vue";
 import { Head, useForm, Link } from "@inertiajs/vue3";
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import Swal from "sweetalert2";
 import { useI18n } from "vue-i18n";
 
@@ -11,19 +11,35 @@ const props = defineProps({
     halls: Array,
 });
 
+// Track if form functionality should be disabled entirely
+const cannotFeedback = ref(false);
+
+onMounted(() => {
+    if (!props.halls || props.halls.length === 0) {
+        cannotFeedback.value = true;
+        Swal.fire({
+            title: "Access Denied",
+            text: "Please first visit halls then can send feedback.",
+            icon: "warning",
+            confirmButtonColor: "#4f46e5",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+        });
+    }
+});
+
 const form = useForm({
-    type: "general",
+    type: "hall", // Default to hall feedback to match criteria constraints
     hall_id: "",
     subject: "",
     message: "",
     rating: 5,
     sentiment: "Satisfaction",
-    images: [], // Changed from image: null to images: []
+    images: [],
 });
 
 const imagePreviews = ref([]);
 
-// Update rating based on dropdown selection
 watch(
     () => form.sentiment,
     (newVal) => {
@@ -33,7 +49,6 @@ watch(
     },
 );
 
-// Update dropdown selection based on star rating clicks
 watch(
     () => form.rating,
     (newVal) => {
@@ -50,9 +65,6 @@ watch(
     },
 );
 
-/**
- * Image Processing: Resize and Compress
- */
 const processImage = (file) => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -65,7 +77,6 @@ const processImage = (file) => {
                 let width = img.width;
                 let height = img.height;
 
-                // Max width: 1200px
                 if (width > 1200) {
                     height *= 1200 / width;
                     width = 1200;
@@ -76,7 +87,6 @@ const processImage = (file) => {
                 const ctx = canvas.getContext("2d");
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Compress to 0.7 quality
                 canvas.toBlob(
                     (blob) => {
                         const processedFile = new File([blob], file.name, {
@@ -97,10 +107,18 @@ const processImage = (file) => {
 };
 
 const onFileChange = async (e) => {
+    if (cannotFeedback.value) {
+        Swal.fire(
+            "Error",
+            "Please first visit halls then can send feedback.",
+            "error",
+        );
+        return;
+    }
+
     const files = Array.from(e.target.files);
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-    // Limit to 3 images
     if (files.length + form.images.length > 3) {
         Swal.fire(
             "Error",
@@ -111,7 +129,6 @@ const onFileChange = async (e) => {
     }
 
     for (const file of files) {
-        // Validate Type
         if (!allowedTypes.includes(file.type)) {
             Swal.fire(
                 "Error",
@@ -121,7 +138,6 @@ const onFileChange = async (e) => {
             continue;
         }
 
-        // Validate Size (3MB)
         if (file.size > 3 * 1024 * 1024) {
             Swal.fire(
                 "Error",
@@ -144,6 +160,15 @@ const removeImage = (index) => {
 };
 
 const submit = () => {
+    if (cannotFeedback.value) {
+        Swal.fire(
+            "Error",
+            "Please first visit halls then can send feedback.",
+            "error",
+        );
+        return;
+    }
+
     const msg = form.message.trim();
     const longConsonants = /[^aeiou\s]{6,}/i;
     const repetitions = /(.)\1{3,}/;
@@ -191,9 +216,31 @@ const submit = () => {
 
         <div class="max-w-4xl mx-auto px-4 pb-10">
             <div
-                class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden"
+                class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden relative"
             >
-                <!-- Type Toggle -->
+                <div
+                    v-if="cannotFeedback"
+                    class="absolute inset-0 bg-slate-50/60 backdrop-blur-[1px] z-50 flex items-center justify-center p-6"
+                >
+                    <div
+                        class="bg-white p-6 rounded-2xl shadow-xl border border-amber-100 max-w-sm text-center"
+                    >
+                        <span class="text-4xl">⚠️</span>
+                        <h3 class="text-base font-bold text-slate-800 mt-2">
+                            Feedback Locked
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">
+                            Please first visit halls then can send feedback.
+                        </p>
+                        <Link
+                            :href="route('visitor.dashboard')"
+                            class="mt-4 inline-block px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase transition-all hover:bg-indigo-700 shadow-md"
+                        >
+                            Return to Dashboard
+                        </Link>
+                    </div>
+                </div>
+
                 <div class="bg-slate-50/50 p-6 border-b border-slate-100">
                     <div
                         class="flex bg-slate-200/60 p-1 rounded-2xl w-full max-w-xs mx-auto"
@@ -201,6 +248,7 @@ const submit = () => {
                         <button
                             @click="form.type = 'general'"
                             type="button"
+                            :disabled="cannotFeedback"
                             class="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
                             :class="
                                 form.type === 'general'
@@ -213,6 +261,7 @@ const submit = () => {
                         <button
                             @click="form.type = 'hall'"
                             type="button"
+                            :disabled="cannotFeedback"
                             class="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
                             :class="
                                 form.type === 'hall'
@@ -235,6 +284,7 @@ const submit = () => {
                             </label>
                             <select
                                 v-model="form.hall_id"
+                                :disabled="cannotFeedback"
                                 class="w-full bg-slate-50 border-none rounded-xl p-3 font-semibold text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500"
                                 :class="{
                                     'ring-2 ring-red-500': form.errors.hall_id,
@@ -267,6 +317,7 @@ const submit = () => {
                             <input
                                 v-model="form.subject"
                                 type="text"
+                                :disabled="cannotFeedback"
                                 class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500"
                                 :placeholder="
                                     $t('feedback.placeholder_subject')
@@ -288,6 +339,7 @@ const submit = () => {
                             >
                             <select
                                 v-model="form.sentiment"
+                                :disabled="cannotFeedback"
                                 class="w-full bg-white border-slate-200 rounded-xl p-3 font-semibold text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500"
                             >
                                 <option value="Satisfaction">
@@ -312,6 +364,7 @@ const submit = () => {
                                     v-for="i in 5"
                                     :key="i"
                                     type="button"
+                                    :disabled="cannotFeedback"
                                     @click="form.rating = i"
                                     class="text-3xl transition-all hover:scale-125 focus:outline-none"
                                     :class="
@@ -334,6 +387,7 @@ const submit = () => {
                         <textarea
                             v-model="form.message"
                             rows="5"
+                            :disabled="cannotFeedback"
                             class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-indigo-500 transition-all"
                             :class="{
                                 'ring-2 ring-red-500 bg-red-50/30':
@@ -343,10 +397,8 @@ const submit = () => {
                         ></textarea>
                     </div>
 
-                    <!-- Image Upload & Actions -->
                     <div class="pt-6 border-t border-slate-100">
                         <div class="flex flex-wrap gap-4 mb-4">
-                            <!-- Image Previews -->
                             <div
                                 v-for="(preview, index) in imagePreviews"
                                 :key="index"
@@ -385,7 +437,10 @@ const submit = () => {
                             <div class="flex items-center gap-4">
                                 <div
                                     class="relative"
-                                    v-if="form.images.length < 3"
+                                    v-if="
+                                        form.images.length < 3 &&
+                                        !cannotFeedback
+                                    "
                                 >
                                     <input
                                         type="file"
@@ -416,7 +471,9 @@ const submit = () => {
                                 </Link>
                                 <button
                                     type="submit"
-                                    :disabled="form.processing"
+                                    :disabled="
+                                        form.processing || cannotFeedback
+                                    "
                                     class="px-10 py-3.5 bg-indigo-600 text-white rounded-xl font-bold uppercase text-[11px] tracking-widest shadow-lg shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition-all active:scale-95"
                                 >
                                     {{

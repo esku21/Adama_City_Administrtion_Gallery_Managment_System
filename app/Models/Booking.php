@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Storage;
 
 class Booking extends Model
 {
@@ -14,7 +16,6 @@ class Booking extends Model
 
     protected $fillable = [
         'user_id',
-        'hall_id', 
         'visitor_name',
         'visitor_category',
         'visitor_type',
@@ -22,7 +23,7 @@ class Booking extends Model
         'number_of_visitors',
         'booking_date',
         'slot_id',
-        'attachment', // This is the correct column name
+        'attachment',
         'status',
         'attended_at',
         'qr_token',
@@ -37,25 +38,65 @@ class Booking extends Model
     protected $appends = ['attachment_url', 'readable_slot'];
 
     /**
-     * Fix applied here: Changed attachment_path to attachment
+     * Get the accessible URL for uploaded files
      */
-    public function getAttachmentUrlAttribute()
+    public function getAttachmentUrlAttribute(): ?string
     {
         return $this->attachment 
             ? asset('storage/' . $this->attachment) 
             : null;
     }
 
-    public function hall(): BelongsTo
+    /**
+     * Singular Alias for Halls to prevent "Call to undefined relationship [hall]" errors.
+     */
+    public function hall(): BelongsToMany
     {
-        return $this->belongsTo(Hall::class, 'hall_id');
+        return $this->halls();
     }
 
+    /**
+     * Maps a single booking bundle to its selected halls.
+     * Includes access to the specific guide assigned to the hall for this booking.
+     */
+    public function halls(): BelongsToMany
+    {
+        // Note: Ensure your 'booking_hall_guide' table migration has $table->timestamps() for ->withTimestamps() to function.
+        return $this->belongsToMany(Hall::class, 'booking_hall_guide', 'booking_id', 'hall_id')
+                    ->withPivot('guide_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Singular Alias for Guides to prevent accidental naming issues.
+     */
+    public function guide(): BelongsToMany
+    {
+        return $this->guides();
+    }
+
+    /**
+     * Maps a single booking bundle to its respective guides.
+     * Includes access to the specific hall the guide is managing for this booking.
+     */
+    public function guides(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'booking_hall_guide', 'booking_id', 'guide_id')
+                    ->withPivot('hall_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Relationship to the visitor/user who created the booking
+     */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
+    /**
+     * Accessor for parsing active timetable slot codes into readable times
+     */
     public function getReadableSlotAttribute(): string
     {
         $slots = [
@@ -67,6 +108,6 @@ class Booking extends Model
             'a3' => '04:00 PM - 04:30 PM',
         ];
 
-        return $slots[strtolower($this->slot_id)] ?? $this->slot_id ?? 'Not Assigned';
+        return $slots[strtolower($this->slot_id ?? '')] ?? $this->slot_id ?? 'Not Assigned';
     }
 }

@@ -4,16 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hall extends Model
 {
     use HasFactory;
 
+    protected $table = 'halls';
+
     protected $fillable = [
         'name',
-        'description',
-        'location',
         'is_active',
     ];
 
@@ -22,36 +23,29 @@ class Hall extends Model
     ];
 
     /**
-     * Relationship: The bookings associated with this hall.
+     * Plural relationship to bookings via the custom pivot table.
+     * ✅ FIXED: Explicitly links to booking_hall_guide to match Booking.php
      */
-    public function bookings(): HasMany
+    public function bookings(): BelongsToMany
     {
-        return $this->hasMany(Booking::class, 'hall_id');
+        return $this->belongsToMany(Booking::class, 'booking_hall_guide', 'hall_id', 'booking_id')
+                    ->withPivot('guide_id')
+                    ->withTimestamps();
     }
 
     /**
-     * Relationship: The Users (Guides) assigned to this hall.
-     * Since your 'User' model has 'hall_id', we fetch users with the 'guide' role.
+     * Singular alias to prevent broken connection exceptions if called singularly.
      */
-    public function guides(): HasMany
+    public function booking(): BelongsToMany
     {
-        return $this->hasMany(User::class, 'hall_id')->where('role', 'guide');
+        return $this->bookings();
     }
 
     /**
-     * Relationship: Feedbacks specifically for this hall.
-     * This is what allows: Auth::user()->hall->feedbacks to work!
+     * Relationship to Feedbacks submitted for this specific hall.
      */
     public function feedbacks(): HasMany
     {
         return $this->hasMany(Feedback::class, 'hall_id');
-    }
-
-    /**
-     * Scope: Only return halls currently available for booking.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
     }
 }

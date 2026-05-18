@@ -50,9 +50,25 @@ class EmergencyAlertController extends Controller
             ]);
 
             // Target only visitors to notify them in their dashboard
+            // ✅ FIXED: Using direct DB table inserts if your eloquent model doesn't explicitly declare a users() relation setup.
             $visitorIds = User::where('role', 'visitor')->pluck('id');
+            
             if ($visitorIds->isNotEmpty()) {
-                $announcement->users()->syncWithoutDetaching($visitorIds);
+                if (method_exists($announcement, 'users')) {
+                    $announcement->users()->syncWithoutDetaching($visitorIds);
+                } else {
+                    // Fallback block: Inserts values straight into pivot table manually to prevent execution failures
+                    $pivotData = $visitorIds->map(function ($userId) use ($announcement) {
+                        return [
+                            'announcement_id' => $announcement->id,
+                            'user_id'         => $userId,
+                            'created_at'      => now(),
+                            'updated_at'      => now()
+                        ];
+                    })->toArray();
+
+                    DB::table('announcement_user')->insertOrIgnore($pivotData);
+                }
             }
 
             DB::commit();
@@ -70,7 +86,14 @@ class EmergencyAlertController extends Controller
     public function destroy($id)
     {
         $announcement = Announcement::findOrFail($id);
-        $announcement->users()->detach(); // Clean up pivot table
+        
+        // ✅ FIXED: Safe removal check for pivot rows
+        if (method_exists($announcement, 'users')) {
+            $announcement->users()->detach();
+        } else {
+            DB::table('announcement_user')->where('announcement_id', $id)->delete();
+        }
+
         $announcement->delete();
 
         return Redirect::back()->with('message', 'Announcement deleted.');

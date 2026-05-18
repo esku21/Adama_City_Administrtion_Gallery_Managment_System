@@ -42,7 +42,8 @@ class DashboardController extends Controller
                 ->get()
                 ->map(fn($b) => [
                     'id'             => $b->id,
-                    'booking_date'   => $b->booking_date,
+                    // Formats ISO string or datetime object directly to YYYY-MM-DD
+                    'booking_date'   => $b->booking_date ? date('Y-m-d', strtotime($b->booking_date)) : 'N/A',
                     'slot_id'        => $b->slot_id,
                     'status'         => $b->status,
                     'admin_feedback' => $b->admin_feedback,
@@ -70,7 +71,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn($b) => [
                 'id'             => $b->id,
-                'booking_date'   => $b->booking_date,
+                'booking_date'   => $b->booking_date ? date('Y-m-d', strtotime($b->booking_date)) : 'N/A',
                 'admin_feedback' => $b->admin_feedback,
                 'hall_name'      => $b->halls->name ?? 'N/A',
             ]);

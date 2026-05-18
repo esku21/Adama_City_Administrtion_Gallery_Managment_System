@@ -6,18 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
 
-            // ✅ RELATIONSHIPS
+            // ✅ RELATIONSHIPS (hall_id and guide_id are moved to the pivot table)
             $table->foreignId('user_id')
                 ->constrained()
-                ->cascadeOnDelete();
-
-            $table->foreignId('hall_id')
-                ->constrained('halls')
                 ->cascadeOnDelete();
 
             // ✅ VISITOR INFO
@@ -27,12 +26,12 @@ return new class extends Migration
             $table->string('organization_name')->nullable();
             $table->unsignedInteger('number_of_visitors')->default(1);
 
-            // ✅ BOOKING DETAILS
-            $table->date('booking_date')->index();
+            // ✅ BOOKING DETAILS (Changed to dateTime to support full timestamps safely)
+            $table->dateTime('booking_date')->index();
             $table->string('slot_id')->nullable();
 
-            // ✅ FILE UPLOAD (FIXED)
-            $table->string('attachment')->nullable(); // 🔥 IMPORTANT: matches model & frontend
+            // ✅ FILE UPLOAD
+            $table->string('attachment')->nullable(); 
 
             // ✅ STATUS
             $table->string('status')->default('pending')->index();
@@ -47,6 +46,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('bookings');

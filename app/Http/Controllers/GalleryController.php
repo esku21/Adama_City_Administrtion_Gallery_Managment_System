@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Image;
+use App\Models\ImageInteraction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
@@ -10,17 +11,29 @@ use Illuminate\Support\Facades\Storage;
 class GalleryController extends Controller
 {
     /**
-     * PUBLIC VIEW: For visitors and guides
+     * PUBLIC VIEW: For visitors.
+     * Maps images to include 'is_liked' status for the current user's IP.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $ip = $request->ip();
+        
+        $images = Image::latest()->get()->map(function ($img) use ($ip) {
+            // Check if this specific IP has already liked this image
+            $img->is_liked = ImageInteraction::where('image_id', $img->id)
+                ->where('ip_address', $ip)
+                ->where('type', 'like')
+                ->exists();
+            return $img;
+        });
+
         return Inertia::render('Gallery/index', [
-            'images' => Image::latest()->get()
+            'images' => $images
         ]);
     }
 
     /**
-     * ADMIN VIEW
+     * ADMIN VIEW: For dashboard management.
      */
     public function adminIndex()
     {
@@ -30,7 +43,7 @@ class GalleryController extends Controller
     }
 
     /**
-     * STORE: Handles the upload from the Admin Dashboard
+     * STORE: Handles the upload from the Admin Dashboard.
      */
     public function store(Request $request)
     {
@@ -47,6 +60,7 @@ class GalleryController extends Controller
                 'url' => Storage::url($path),
                 'views_count' => 0,
                 'likes_count' => 0,
+                'dislikes_count' => 0,
             ]);
         }
 
@@ -54,7 +68,7 @@ class GalleryController extends Controller
     }
 
     /**
-     * UPDATE: This fixes the "Call to undefined method" error
+     * UPDATE: Edit title or replace the image file.
      */
     public function update(Request $request, $id)
     {
@@ -65,36 +79,32 @@ class GalleryController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        // Update Title
         $image->title = $request->title;
 
-        // Update File if provided
         if ($request->hasFile('image')) {
-            // 1. Delete old file from storage
+            // Delete old file
             $oldFilePath = str_replace('/storage/', '', $image->url);
             if (Storage::disk('public')->exists($oldFilePath)) {
                 Storage::disk('public')->delete($oldFilePath);
             }
 
-            // 2. Store new file
+            // Store new file
             $newPath = $request->file('image')->store('gallery', 'public');
             $image->url = Storage::url($newPath);
         }
 
         $image->save();
-
         return back()->with('message', 'Image updated successfully!');
     }
 
     /**
-     * DESTROY: Deletes the photo from DB and Storage
+     * DESTROY: Deletes the photo record and the physical file.
      */
     public function destroy($id)
     {
         $image = Image::findOrFail($id);
-        
-        // Remove file from storage
         $filePath = str_replace('/storage/', '', $image->url);
+        
         if (Storage::disk('public')->exists($filePath)) {
             Storage::disk('public')->delete($filePath);
         }
@@ -104,19 +114,66 @@ class GalleryController extends Controller
     }
 
     /**
-     * INTERACTIONS
+     * INCREMENT VIEW: Only records one view per IP address.
+     * FIXED: Returns back() instead of JSON to prevent the Inertia modal error.
      */
     public function incrementView(Request $request, $id) 
     {
-        $image = Image::find($id);
-        if ($image) { $image->increment('views_count'); }
+        $ip = $request->ip();
+
+        // Check if this IP already has a 'view' record for this image
+        $exists = ImageInteraction::where('image_id', $id)
+            ->where('ip_address', $ip)
+            ->where('type', 'view')
+            ->exists();
+
+        if (!$exists) {
+            ImageInteraction::create([
+                'image_id' => $id,
+                'ip_address' => $ip,
+                'type' => 'view'
+            ]);
+            
+            $image = Image::find($id);
+            if ($image) {
+                $image->increment('views_count');
+            }
+        }
+
+        // Always return back() for Inertia requests
         return back();
     }
 
+    /**
+     * INCREMENT LIKE: Toggles likes (One per IP).
+     * If already liked, clicking again will 'Unlike'.
+     */
     public function incrementLike(Request $request, $id) 
     {
-        $image = Image::find($id);
-        if ($image) { $image->increment('likes_count'); }
+        $ip = $request->ip();
+        $image = Image::findOrFail($id);
+
+        // Check for existing like interaction
+        $interaction = ImageInteraction::where('image_id', $id)
+            ->where('ip_address', $ip)
+            ->where('type', 'like')
+            ->first();
+
+        if (!$interaction) {
+            // User hasn't liked it yet: Add Like record and increment count
+            ImageInteraction::create([
+                'image_id' => $id,
+                'ip_address' => $ip,
+                'type' => 'like'
+            ]);
+            $image->increment('likes_count');
+        } else {
+            // User already liked it: Toggle OFF (Delete record and decrement count)
+            $interaction->delete();
+            $image->decrement('likes_count');
+        }
+
+        // Use back() to refresh the data on the current page
         return back();
     }
 }

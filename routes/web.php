@@ -32,7 +32,7 @@ use App\Http\Controllers\Admin\SystemStatusController;
 use App\Http\Controllers\Admin\AdminGuideController; 
 use App\Http\Controllers\Admin\FeedbackController as AdminFeedback;
 use App\Http\Controllers\Admin\HallController; 
-use App\Http\Controllers\Admin\AlertController;
+use App\Http\Controllers\Admin\EmergencyAlertController; // ✅ FIXED: Changed AlertController to EmergencyAlertController
 use App\Http\Controllers\Admin\ReportController as AdminReportLogic;
 
 // Shared/Unified Controllers
@@ -93,7 +93,7 @@ Route::get('/', function () {
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/contacts', fn() => Inertia::render('Public/Contacts'))->name('contacts');
 
-// Public Gallery Actions (Visitor view)
+// Public Gallery Actions (Visitor view) 
 Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
 Route::post('/gallery/{id}/view', [GalleryController::class, 'incrementView'])->name('gallery.view');
 Route::post('/gallery/{id}/like', [GalleryController::class, 'incrementLike'])->name('gallery.like');
@@ -189,18 +189,18 @@ Route::middleware(['auth:web', 'check.system'])->group(function () {
         Route::get('/dashboard', [AdminDashboard::class, 'allBookings'])->name('dashboard'); 
         Route::get('/reports', [AdminReportLogic::class, 'index'])->name('reports'); 
 
-        // Gallery Admin Management (Unified & Corrected)
+        // Gallery Admin Management
         Route::patch('/gallery/{id}/stats', [GalleryController::class, 'updateStats'])->name('gallery.update-stats');
         Route::get('/gallery', [GalleryController::class, 'adminIndex'])->name('gallery.index');
         Route::post('/gallery', [GalleryController::class, 'store'])->name('gallery.store');
-        Route::post('/gallery/{id}', [GalleryController::class, 'update'])->name('gallery.update'); // FIX: Added Update Route
+        Route::post('/gallery/{id}', [GalleryController::class, 'update'])->name('gallery.update');
         Route::delete('/gallery/{id}', [GalleryController::class, 'destroy'])->name('gallery.destroy');
 
         Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
         Route::post('/announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
         Route::delete('/announcements/{id}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
-        Route::post('/alerts/broadcast', [AlertController::class, 'broadcast'])->name('alerts.broadcast');
+        Route::post('/alerts/broadcast', [EmergencyAlertController::class, 'broadcast'])->name('alerts.broadcast'); // ✅ FIXED: Changed AlertController to EmergencyAlertController
 
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

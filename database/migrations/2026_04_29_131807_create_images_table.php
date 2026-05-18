@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->integer('views_count')->default(0);
             $table->integer('likes_count')->default(0);
-            $table->integer('dislikes_count')->default(0); // Added for the dashboard buttons
+            $table->integer('dislikes_count')->default(0);
             $table->timestamps();
         });
     }

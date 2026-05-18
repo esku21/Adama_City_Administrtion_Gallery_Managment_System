@@ -34,8 +34,12 @@ class GuideController extends Controller
             'a3' => '04:00 PM - 04:30 PM',
         ];
 
-        // Base Query: Restricted to this guide's assigned hall
-        $hallBookings = Booking::where('hall_id', $guide->hall_id);
+        $hallId = $guide->hall_id;
+
+        // ✅ FIXED: Using many-to-many relationship check instead of searching 'hall_id' column directly
+        $hallBookings = Booking::whereHas('halls', function ($query) use ($hallId) {
+            $query->where('halls.id', $hallId);
+        });
 
         $stats = [
             'total_bookings' => (clone $hallBookings)->count(),
@@ -50,7 +54,7 @@ class GuideController extends Controller
         ];
 
         $bookings = (clone $hallBookings)
-            ->with(['hall']) 
+            ->with(['halls']) // ✅ Changed to plural relation 'halls' if your Booking model uses 'halls' relationship
             ->whereDate('booking_date', '>=', $today) 
             ->orderBy('booking_date', 'asc')
             ->get()
@@ -63,7 +67,8 @@ class GuideController extends Controller
                     'booking_date'  => $booking->booking_date instanceof Carbon 
                                         ? $booking->booking_date->toDateString() 
                                         : $booking->booking_date,
-                    'hall_names'    => $booking->hall->name ?? 'Station Hall', 
+                    // ✅ FIXED: Pluralized to grab the first hall name out of the collection if multiple exist
+                    'hall_names'    => $booking->halls->first()->name ?? 'Station Hall', 
                     'readable_slot' => $timeMapping[strtolower($booking->slot_id)] ?? ($booking->slot_id ?? 'N/A'), 
                 ];
             });
@@ -77,7 +82,7 @@ class GuideController extends Controller
     }
 
     /**
-     * MISSING METHOD FIXED: Opens the QR Scanner View
+     * Opens the QR Scanner View
      */
     public function scanner()
     {
@@ -96,7 +101,12 @@ class GuideController extends Controller
 
         try {
             $guide = Auth::guard('guide')->user();
-            $booking = Booking::where('hall_id', $guide->hall_id)->findOrFail($id);
+            $hallId = $guide->hall_id;
+
+            // ✅ FIXED: Ensuring update targets correct relation instead of 'hall_id' column
+            $booking = Booking::whereHas('halls', function ($query) use ($hallId) {
+                $query->where('halls.id', $hallId);
+            })->findOrFail($id);
             
             $statusMapping = [
                 'Arrived' => 'Arrived',

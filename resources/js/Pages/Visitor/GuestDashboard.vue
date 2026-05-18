@@ -57,34 +57,6 @@ const safeRoute = (routeName) => {
     }
 };
 
-// Global Like/Dislike Logic
-const galleryLikes = ref(0);
-const hasLiked = ref(false);
-const hasDisliked = ref(false);
-
-const handleLike = () => {
-    if (!hasLiked.value) {
-        galleryLikes.value++;
-        hasLiked.value = true;
-        if (hasDisliked.value) hasDisliked.value = false;
-    } else {
-        galleryLikes.value--;
-        hasLiked.value = false;
-    }
-};
-
-const handleDislike = () => {
-    if (!hasDisliked.value) {
-        if (hasLiked.value) {
-            galleryLikes.value--;
-            hasLiked.value = false;
-        }
-        hasDisliked.value = true;
-    } else {
-        hasDisliked.value = false;
-    }
-};
-
 const messages = {
     en: {
         nav: {
@@ -99,9 +71,11 @@ const messages = {
         },
         hero: {
             welcome: "Welcome to the Adama City Administration Gallery Portal",
+            bookingNote:
+                "Please create an account to unlock booking features. Already have one? Just log in!",
         },
         cards: {
-            join: "Create  Account",
+            join: "Create Account",
             joinDesc: "Create your account to explore!",
             login: "Login",
             loginDesc: "Access your secure dashboard.",
@@ -365,7 +339,7 @@ onUnmounted(() => clearInterval(slideInterval));
         <main class="flex-grow py-6 overflow-hidden">
             <div class="container mx-auto px-6 lg:px-12">
                 <div class="grid lg:grid-cols-12 gap-8 items-center">
-                    <!-- Slider Section -->
+                    <!-- Slider Section (Likes/Dislikes Removed) -->
                     <div
                         class="lg:col-span-8 relative h-[400px] md:h-[600px] w-full overflow-hidden rounded-[30px] md:rounded-[40px] shadow-2xl bg-slate-900 group"
                     >
@@ -399,52 +373,23 @@ onUnmounted(() => clearInterval(slideInterval));
                                 </div>
                             </div>
                         </TransitionGroup>
-
-                        <!-- GLOBAL LIKE/DISLIKE (One for all images) -->
-                        <div
-                            class="absolute top-6 right-6 flex items-center gap-3 z-50"
-                        >
-                            <button
-                                @click="handleLike"
-                                :class="
-                                    hasLiked
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white/10 text-white backdrop-blur-md'
-                                "
-                                class="flex items-center gap-2 px-4 py-2 rounded-full transition-all hover:scale-105"
-                            >
-                                <span class="material-icons-outlined text-lg">{{
-                                    hasLiked ? "thumb_up" : "thumb_up_off_alt"
-                                }}</span>
-                                <span class="text-sm font-bold">{{
-                                    galleryLikes
-                                }}</span>
-                            </button>
-                            <button
-                                @click="handleDislike"
-                                :class="
-                                    hasDisliked
-                                        ? 'bg-red-600 text-white'
-                                        : 'bg-white/10 text-white backdrop-blur-md'
-                                "
-                                class="p-2 rounded-full transition-all hover:scale-105"
-                            >
-                                <span class="material-icons-outlined text-lg">{{
-                                    hasDisliked
-                                        ? "thumb_down"
-                                        : "thumb_down_off_alt"
-                                }}</span>
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Hero Content -->
                     <div class="lg:col-span-4 space-y-6 md:space-y-8">
-                        <p
-                            class="text-4xl md:text-3xl font-black text-[#0a192f] tracking-tighter leading-[1.1]"
-                        >
-                            {{ t("hero.welcome") }}
-                        </p>
+                        <div>
+                            <p
+                                class="text-4xl md:text-3xl font-black text-[#0a192f] tracking-tighter leading-[1.1] mb-4"
+                            >
+                                {{ t("hero.welcome") }}
+                            </p>
+                            <p
+                                class="text-slate-600 text-sm font-medium leading-relaxed"
+                            >
+                                {{ t("hero.bookingNote") }}
+                            </p>
+                        </div>
+
                         <div class="grid grid-cols-1 gap-4">
                             <Link
                                 :href="safeRoute('register')"
@@ -598,7 +543,6 @@ onUnmounted(() => clearInterval(slideInterval));
                                 asto@adamacity.gov.et
                             </a>
                         </li>
-                        <!-- Added Phone Section Below -->
                         <li class="flex items-center gap-3">
                             <span class="material-icons-outlined text-blue-500"
                                 >phone</span

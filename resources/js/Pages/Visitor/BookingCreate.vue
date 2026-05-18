@@ -102,8 +102,14 @@ const isWeekday = computed(() => {
     return d !== 0 && d !== 6;
 });
 
+// Updated to allow selecting one or more galleries
 const toggleHall = (id) => {
-    form.hall_ids = [id];
+    const index = form.hall_ids.indexOf(id);
+    if (index > -1) {
+        form.hall_ids.splice(index, 1); // Deselect if already selected
+    } else {
+        form.hall_ids.push(id); // Select if not present
+    }
 };
 
 const setCategory = (cat) => {
@@ -119,7 +125,11 @@ const handleFileUpload = (e) => {
 
 const validateAndSubmit = () => {
     if (!form.hall_ids.length) {
-        return Swal.fire("Select Hall", "Please select a hall", "warning");
+        return Swal.fire(
+            "Select Hall",
+            "Please select at least one gallery/hall",
+            "warning",
+        );
     }
 
     if (form.booking_date && !isWeekday.value) {
@@ -135,6 +145,14 @@ const validateAndSubmit = () => {
             "Missing Document",
             "VIP bookings require official letter",
             "info",
+        );
+    }
+
+    if (!form.slot_id) {
+        return Swal.fire(
+            "Select Time Slot",
+            "Please pick a time slot before confirming",
+            "warning",
         );
     }
 
@@ -154,7 +172,7 @@ const validateAndSubmit = () => {
             Swal.fire({
                 icon: "error",
                 title: "Request Failed",
-                text: "Please check your input",
+                text: "Please check your input details",
             });
         },
     });
@@ -166,7 +184,6 @@ const validateAndSubmit = () => {
 
     <VisitorLayout>
         <div class="max-w-5xl mx-auto px-4 py-10">
-            <!-- STEP INDICATOR -->
             <div class="flex justify-between mb-12 max-w-2xl mx-auto relative">
                 <div
                     v-for="s in steps"
@@ -197,34 +214,45 @@ const validateAndSubmit = () => {
                 </div>
             </div>
 
-            <!-- CARD -->
             <div class="bg-white rounded-3xl shadow-2xl border overflow-hidden">
-                <!-- STEP 1 -->
                 <div v-if="step === 1" class="p-8">
                     <h2 class="text-3xl font-black mb-2">
                         {{ $t("bookings.create_title") }}
                     </h2>
-                    <p class="text-gray-500 mb-8">Choose a hall to continue</p>
+                    <p class="text-gray-500 mb-8">
+                        Choose one or more galleries to continue
+                    </p>
 
                     <div class="grid md:grid-cols-3 gap-6">
                         <div
                             v-for="hall in props.halls"
                             :key="hall.id"
                             @click="toggleHall(hall.id)"
-                            class="p-6 border rounded-2xl cursor-pointer transition hover:shadow-lg"
+                            class="p-6 border rounded-2xl cursor-pointer transition hover:shadow-lg relative overflow-hidden"
                             :class="
                                 form.hall_ids.includes(hall.id)
-                                    ? 'border-indigo-600 bg-indigo-50'
-                                    : 'border-gray-200'
+                                    ? 'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-600/20'
+                                    : 'border-gray-200 hover:border-gray-300'
                             "
                         >
+                            <div
+                                v-if="form.hall_ids.includes(hall.id)"
+                                class="absolute top-3 right-3 bg-indigo-600 text-white rounded-full p-0.5"
+                            >
+                                <CheckCircle2
+                                    class="w-4 h-4 text-white fill-current"
+                                />
+                            </div>
+
                             <component
                                 :is="getHallIcon(hall.name)"
                                 class="w-8 h-8 mb-3 text-indigo-600"
                             />
-                            <h3 class="font-bold">{{ hall.name }}</h3>
+                            <h3 class="font-bold text-gray-800">
+                                {{ hall.name }}
+                            </h3>
                             <p
-                                class="text-sm text-gray-500 flex items-center gap-1"
+                                class="text-sm text-gray-500 flex items-center gap-1 mt-1"
                             >
                                 <MapPin class="w-4 h-4" />
                                 {{ hall.location }}
@@ -236,14 +264,13 @@ const validateAndSubmit = () => {
                         <button
                             @click="step = 2"
                             :disabled="!form.hall_ids.length"
-                            class="bg-indigo-600 text-white px-6 py-3 rounded-xl disabled:opacity-50"
+                            class="bg-indigo-600 text-white px-6 py-3 rounded-xl disabled:opacity-50 transition-all font-semibold shadow-md shadow-indigo-600/10 hover:bg-indigo-700"
                         >
-                            Continue <ArrowRight class="inline w-4 h-4" />
+                            Continue <ArrowRight class="inline w-4 h-4 ml-1" />
                         </button>
                     </div>
                 </div>
 
-                <!-- STEP 2 -->
                 <div v-if="step === 2" class="p-8">
                     <h2 class="text-2xl font-bold mb-6 text-center">
                         Select Visitor Type
@@ -252,29 +279,40 @@ const validateAndSubmit = () => {
                     <div class="grid md:grid-cols-2 gap-6">
                         <div
                             @click="setCategory('Normal')"
-                            class="p-8 border rounded-2xl text-center cursor-pointer hover:shadow-lg"
+                            class="p-8 border rounded-2xl text-center cursor-pointer transition hover:shadow-lg hover:border-indigo-500"
                         >
-                            <User class="mx-auto w-10 h-10 mb-3" />
-                            Normal Visitor
+                            <User
+                                class="mx-auto w-10 h-10 mb-3 text-indigo-600"
+                            />
+                            <span class="font-semibold text-gray-700"
+                                >Normal Visitor</span
+                            >
                         </div>
 
                         <div
                             @click="setCategory('VIP')"
-                            class="p-8 border rounded-2xl text-center cursor-pointer hover:shadow-lg"
+                            class="p-8 border rounded-2xl text-center cursor-pointer transition hover:shadow-lg hover:border-indigo-500"
                         >
-                            <Crown class="mx-auto w-10 h-10 mb-3" />
-                            VIP Visitor
+                            <Crown
+                                class="mx-auto w-10 h-10 mb-3 text-indigo-600"
+                            />
+                            <span class="font-semibold text-gray-700"
+                                >VIP Visitor</span
+                            >
                         </div>
                     </div>
 
-                    <div class="mt-6 text-center">
-                        <button @click="step = 1" class="text-gray-500">
-                            <ArrowLeft class="inline w-4 h-4" /> Back
+                    <div class="mt-8 text-center">
+                        <button
+                            @click="step = 1"
+                            class="text-gray-500 hover:text-gray-700 font-medium"
+                        >
+                            <ArrowLeft class="inline w-4 h-4 mr-1" /> Back to
+                            Galleries
                         </button>
                     </div>
                 </div>
 
-                <!-- STEP 3 -->
                 <div v-if="step === 3" class="p-8">
                     <h2 class="text-2xl font-bold mb-6">Schedule Booking</h2>
 
@@ -283,59 +321,88 @@ const validateAndSubmit = () => {
                         class="grid md:grid-cols-2 gap-6"
                     >
                         <div>
-                            <label class="font-bold">Choice Date</label>
+                            <label class="font-bold text-gray-700 block mb-1"
+                                >Choice Date</label
+                            >
                             <input
                                 type="date"
                                 v-model="form.booking_date"
                                 :min="today"
-                                class="w-full p-3 border rounded-xl"
+                                class="w-full p-3 border rounded-xl focus:outline-indigo-600"
                             />
 
-                            <label class="font-bold mt-4 block"
+                            <label
+                                class="font-bold mt-4 block text-gray-700 mb-1"
                                 >How many Visitors?</label
                             >
                             <input
                                 type="number"
                                 v-model="form.number_of_visitors"
                                 min="1"
-                                class="w-full p-3 border rounded-xl"
+                                max="50"
+                                class="w-full p-3 border rounded-xl focus:outline-indigo-600"
                             />
 
                             <div
                                 v-if="form.visitor_category === 'VIP'"
-                                class="mt-4"
+                                class="mt-4 p-4 border border-dashed rounded-xl bg-gray-50"
                             >
-                                <input type="file" @change="handleFileUpload" />
+                                <label
+                                    class="font-bold block text-gray-700 mb-2"
+                                    >Upload Supporting Letter</label
+                                >
+                                <input
+                                    type="file"
+                                    @change="handleFileUpload"
+                                    class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                />
                             </div>
                         </div>
 
                         <div>
-                            <label class="font-bold">Time Slot</label>
-
-                            <div
-                                v-for="slot in [
-                                    ...morningSlots,
-                                    ...afternoonSlots,
-                                ]"
-                                :key="slot.id"
-                                @click="form.slot_id = slot.id"
-                                class="p-3 border rounded-xl mt-2 cursor-pointer"
-                                :class="
-                                    form.slot_id === slot.id
-                                        ? 'bg-indigo-50 border-indigo-600'
-                                        : ''
-                                "
+                            <label class="font-bold text-gray-700 block mb-1"
+                                >Time Slot</label
                             >
-                                {{ slot.label }} - {{ slot.time }}
+                            <div class="max-h-[300px] overflow-y-auto pr-1">
+                                <div
+                                    v-for="slot in [
+                                        ...morningSlots,
+                                        ...afternoonSlots,
+                                    ]"
+                                    :key="slot.id"
+                                    @click="form.slot_id = slot.id"
+                                    class="p-3 border rounded-xl mt-2 cursor-pointer transition-all text-sm font-medium text-gray-700"
+                                    :class="
+                                        form.slot_id === slot.id
+                                            ? 'bg-indigo-50 border-indigo-600 text-indigo-900 ring-1 ring-indigo-600/30'
+                                            : 'hover:bg-gray-50 border-gray-200'
+                                    "
+                                >
+                                    {{ slot.label }} - {{ slot.time }}
+                                </div>
                             </div>
                         </div>
 
-                        <div class="md:col-span-2 text-right">
+                        <div
+                            class="md:col-span-2 flex justify-between items-center mt-6 pt-4 border-t"
+                        >
+                            <button
+                                type="button"
+                                @click="step = 2"
+                                class="text-gray-500 hover:text-gray-700 font-medium"
+                            >
+                                <ArrowLeft class="inline w-4 h-4 mr-1" /> Back
+                            </button>
                             <button
                                 type="submit"
-                                class="bg-indigo-600 text-white px-6 py-3 rounded-xl"
+                                :disabled="form.processing"
+                                class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold transition-all hover:bg-indigo-700 disabled:opacity-50"
                             >
-                                Confirm Booking
+                                {{
+                                    form.processing
+                                        ? "Processing..."
+                                        : "Confirm Booking"
+                                }}
                             </button>
                         </div>
                     </form>

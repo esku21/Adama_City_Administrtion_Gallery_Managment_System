@@ -23,8 +23,7 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // 1. IMPROVED VALIDATION
-        // We use named keys in the custom messages to be very specific
+        // 1. IMPROVED VALIDATION WITH RESTRICTED EMAIL DOMAINS
         $request->validate([
             'firstName'   => [
                 'required', 
@@ -42,16 +41,25 @@ class RegisteredUserController extends Controller
                 'regex:/^[a-zA-Z\s\-]+$/', 
                 'regex:/[aeiouAEIOU]/'
             ],
-            'email'       => 'required|string|lowercase|email|max:255|unique:users,email',
+            'email'       => [
+                'required',
+                'string',
+                'lowercase',
+                'max:255',
+                'unique:users,email',
+                // Explicitly permits only trusted, real public domains (case-insensitive flag applied)
+                'regex:/^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|hotmail\.com|outlook\.com)$/i'
+            ],
             'phone_no'    => ['required', 'unique:users,phone_no', 'regex:/^(09|07)\d{8}$/'],
             'visitorType' => 'required|string|in:Local,Foreign',
             'citizenship' => 'nullable|string|max:100',
             'password'    => ['required', 'confirmed', Rules\Password::defaults()],
         ], [
-            // SPECIFIC MESSAGES FOR EACH FIELD
+            // SPECIFIC ERROR MESSAGES FOR THE USER FORMS
             'firstName.regex' => 'The First Name must be a valid name containing letters and at least one vowel.',
             'lastName.regex'  => 'The Last Name must be a valid name containing letters and at least one vowel.',
             'phone_no.regex'  => 'Enter a valid Ethiopian phone number starting with 09 or 07.',
+            'email.regex'     => 'Please register using a valid email provider (e.g., example@gmail.com).',
             'email.unique'    => 'This email is already registered.',
         ]);
 
@@ -92,7 +100,7 @@ class RegisteredUserController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            // This ensures if the database fails, you get a clean error back to the form
+            // Returns back gracefully if system database exceptions emerge
             return redirect()->back()
                 ->withErrors(['firstName' => 'A system error occurred. Please try again.'])
                 ->withInput();
