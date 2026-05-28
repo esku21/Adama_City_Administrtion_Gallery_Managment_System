@@ -24,11 +24,22 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            // Standard fields
+            'firstName' => fake()->firstName(),
+            'lastName' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+
+            // Additional required fields from your model
+            'phone_no' => fake()->phoneNumber(),
+            
+            'visitorType' => 'general',
+            'citizenship' => 'Ethiopian',
+            'role' => 'visitor',
+            // 'hall_id' is nullable in many schemas; if this fails, uncomment and set a valid ID
+            // 'hall_id' => \App\Models\Hall::factory(), 
         ];
     }
 

@@ -1,39 +1,77 @@
 <script setup>
-import { useForm, usePage, Head } from "@inertiajs/vue3";
+import { usePage, Head } from "@inertiajs/vue3";
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import VisitorLayout from "@/Layouts/VisitorLayout.vue";
 
-const user = computed(() => usePage().props.auth.user);
+const { locale } = useI18n();
+const user = computed(() => usePage().props.auth?.user || {});
 
-const form = useForm({
-    firstName: user.value?.firstName || "",
-    lastName: user.value?.lastName || "",
-    email: user.value?.email || "",
-    phone_no: user.value?.phone_no || "",
-});
+const userData = {
+    firstName: user.value.firstName || "",
+    lastName: user.value.lastName || "",
+    email: user.value.email || "",
+    phone_no: user.value.phone_no || "",
+};
 </script>
 
 <template>
-    <Head :title="$t('nav.profile')" />
+    <Head :title="$t('visitor_profile.title')" />
 
     <VisitorLayout>
         <div class="min-h-screen py-10 px-4 sm:px-6">
             <div class="max-w-4xl mx-auto">
+                <div class="flex gap-2 mb-6">
+                    <button
+                        @click="locale = 'en'"
+                        :class="
+                            locale === 'en'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-200'
+                        "
+                        class="px-3 py-1 rounded"
+                    >
+                        EN
+                    </button>
+                    <button
+                        @click="locale = 'or'"
+                        :class="
+                            locale === 'or'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-200'
+                        "
+                        class="px-3 py-1 rounded"
+                    >
+                        OR
+                    </button>
+                    <button
+                        @click="locale = 'am'"
+                        :class="
+                            locale === 'am'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-200'
+                        "
+                        class="px-3 py-1 rounded"
+                    >
+                        AM
+                    </button>
+                </div>
+
                 <div class="mb-8 flex justify-between items-end">
                     <div>
                         <h1
                             class="text-3xl font-extrabold text-slate-900 tracking-tight"
                         >
-                            {{ $t("profile.title") }}
+                            {{ $t("visitor_profile.title") }}
                         </h1>
                         <p class="text-slate-500 mt-2">
-                            {{ $t("profile.subtitle") }}
+                            {{ $t("visitor_profile.subtitle") }}
                         </p>
                     </div>
                     <span
                         class="px-4 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-widest rounded-full border border-slate-200"
                     >
-                        {{ $t("profile.read_only") }}
+                        {{ $t("visitor_profile.read_only") }}
                     </span>
                 </div>
 
@@ -51,8 +89,8 @@ const form = useForm({
                                     class="h-full w-full rounded-[1.25rem] bg-slate-100 flex items-center justify-center text-indigo-600 border border-slate-50"
                                 >
                                     <span class="text-2xl font-bold uppercase">
-                                        {{ user.firstName?.[0]
-                                        }}{{ user.lastName?.[0] }}
+                                        {{ userData.firstName?.charAt(0)
+                                        }}{{ userData.lastName?.charAt(0) }}
                                     </span>
                                 </div>
                             </div>
@@ -64,79 +102,62 @@ const form = useForm({
                             <div
                                 class="flex items-start p-4 bg-amber-50 rounded-2xl border border-amber-100"
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    class="h-5 w-5 text-amber-500 mt-0.5 mr-3"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                >
-                                    <path
-                                        fill-rule="evenodd"
-                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                        clip-rule="evenodd"
-                                    />
-                                </svg>
                                 <p
                                     class="text-sm text-amber-800 leading-relaxed"
                                 >
-                                    {{ $t("profile.verified_notice") }}
+                                    {{ $t("visitor_profile.verified_notice") }}
                                 </p>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="space-y-2">
                                     <label
-                                        class="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                                        class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
                                     >
-                                        {{ $t("profile.first_name") }}
+                                        {{ $t("visitor_profile.first_name") }}
                                     </label>
                                     <input
-                                        v-model="form.firstName"
                                         type="text"
+                                        :value="userData.firstName"
                                         disabled
                                         class="w-full bg-slate-50 border-slate-200 rounded-2xl px-5 py-4 font-medium text-slate-500 cursor-not-allowed border-dashed"
                                     />
                                 </div>
-
                                 <div class="space-y-2">
                                     <label
-                                        class="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                                        class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
                                     >
-                                        {{ $t("profile.last_name") }}
+                                        {{ $t("visitor_profile.last_name") }}
                                     </label>
                                     <input
-                                        v-model="form.lastName"
                                         type="text"
+                                        :value="userData.lastName"
                                         disabled
                                         class="w-full bg-slate-50 border-slate-200 rounded-2xl px-5 py-4 font-medium text-slate-500 cursor-not-allowed border-dashed"
                                     />
                                 </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="space-y-2">
                                     <label
-                                        class="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                                        class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
                                     >
-                                        {{ $t("profile.email") }}
+                                        {{ $t("visitor_profile.email") }}
                                     </label>
                                     <input
-                                        v-model="form.email"
                                         type="email"
+                                        :value="userData.email"
                                         disabled
                                         class="w-full bg-slate-50 border-slate-200 rounded-2xl px-5 py-4 font-medium text-slate-500 cursor-not-allowed border-dashed"
                                     />
                                 </div>
-
                                 <div class="space-y-2">
                                     <label
-                                        class="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                                        class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
                                     >
-                                        {{ $t("profile.phone") }}
+                                        {{ $t("visitor_profile.phone") }}
                                     </label>
                                     <input
-                                        v-model="form.phone_no"
                                         type="text"
+                                        :value="userData.phone_no"
                                         disabled
                                         class="w-full bg-slate-50 border-slate-200 rounded-2xl px-5 py-4 font-medium text-slate-500 cursor-not-allowed border-dashed"
                                     />
@@ -147,15 +168,9 @@ const form = useForm({
                 </div>
 
                 <p class="text-center text-slate-400 text-sm mt-8">
-                    {{ $t("profile.security_footer") }}
+                    {{ $t("visitor_profile.security_footer") }}
                 </p>
             </div>
         </div>
     </VisitorLayout>
 </template>
-
-<style scoped>
-input:disabled {
-    opacity: 0.8;
-}
-</style>

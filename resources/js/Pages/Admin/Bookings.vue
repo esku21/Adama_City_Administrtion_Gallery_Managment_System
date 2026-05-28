@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head, router, useForm } from "@inertiajs/vue3";
+import { Head, router } from "@inertiajs/vue3";
 import Swal from "sweetalert2";
 import { useI18n } from "vue-i18n";
 
@@ -9,356 +9,193 @@ const { t } = useI18n();
 
 const props = defineProps({
     bookings: Array,
-    halls: Array,
 });
 
-// --- SEARCH ---
+const isExpired = (bookingDate) => {
+    if (!bookingDate) return false;
+    const datePart = bookingDate.split("T")[0];
+    const today = new Date().toISOString().split("T")[0];
+    return datePart < today;
+};
+
+const isFinalized = (status) => {
+    return ["arrived", "no-show"].includes(status);
+};
+
 const searchQuery = ref("");
+
 const filteredBookings = computed(() => {
     if (!searchQuery.value) return props.bookings;
     const q = searchQuery.value.toLowerCase();
     return props.bookings.filter((b) => {
+        const dateStr = b.booking_date ? b.booking_date.split("T")[0] : "";
         return (
             (b.visitor_name && b.visitor_name.toLowerCase().includes(q)) ||
-            b.id.toString().includes(q)
+            (b.id && b.id.toString().includes(q)) ||
+            (dateStr && dateStr.includes(q))
         );
     });
 });
 
-// --- STATUS UPDATE ---
 const updateStatus = (booking, newStatus) => {
+    if (isExpired(booking.booking_date) || isFinalized(booking.status)) return;
+
     Swal.fire({
-        title: t("bookings.status_change_title"),
-        text: `Update status for ${booking.visitor_name} to ${newStatus.toUpperCase()}?`,
+        title: t("admin_Booking.status_change_title"),
+        text: `${t("admin_Booking.status_confirm")} ${booking.visitor_name}?`,
         icon: "question",
         showCancelButton: true,
-        confirmButtonColor: "#4f46e5",
         confirmButtonText: t("action.update_confirm"),
     }).then((result) => {
         if (result.isConfirmed) {
             router.put(
                 route("admin.bookings.update", { booking: booking.id }),
-                {
-                    visitor_name: booking.visitor_name,
-                    booking_date: booking.booking_date,
-                    number_of_visitors: booking.number_of_visitors,
-                    hall_id: booking.hall_id,
-                    status: newStatus,
-                },
-                {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        Swal.fire({
-                            title: t("action.updated"),
-                            icon: "success",
-                            timer: 1000,
-                            showConfirmButton: false,
-                        });
-                    },
-                },
-            );
-        } else {
-            router.get(
-                route("admin.bookings.index"),
-                {},
+                { status: newStatus },
                 { preserveScroll: true },
             );
         }
     });
 };
 
-// --- MODAL & FORM ---
-const showModal = ref(false);
-const isEditing = ref(false);
-const currentId = ref(null);
-
-const form = useForm({
-    visitor_name: "",
-    booking_date: "",
-    number_of_visitors: 1,
-    hall_id: "",
-    status: "pending",
-});
-
-const openCreateModal = () => {
-    isEditing.value = false;
-    currentId.value = null;
-    form.reset();
-    showModal.value = true;
-};
-
-const openEditModal = (booking) => {
-    isEditing.value = true;
-    currentId.value = booking.id;
-    form.visitor_name = booking.visitor_name;
-    form.booking_date = booking.booking_date;
-    form.number_of_visitors = booking.number_of_visitors;
-    form.hall_id = booking.hall_id;
-    form.status = booking.status;
-    showModal.value = true;
-};
-
-const submitForm = () => {
-    const options = {
-        onSuccess: () => {
-            showModal.value = false;
-            form.reset();
-            Swal.fire(t("action.success"), "Operation successful", "success");
-        },
-    };
-
-    if (isEditing.value) {
-        form.put(
-            route("admin.bookings.update", { booking: currentId.value }),
-            options,
-        );
-    } else {
-        form.post(route("admin.post.bookings.store"), options);
-    }
-};
-
 const deleteBooking = (id) => {
     Swal.fire({
-        title: t("bookings.delete_title"),
-        text: t("bookings.delete_warning"),
+        title: t("admin_Booking.delete_title"),
+        text: t("admin_Booking.delete_warning"),
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#e11d48",
         confirmButtonText: t("action.delete"),
     }).then((result) => {
         if (result.isConfirmed) {
-            router.delete(route("admin.bookings.destroy", { booking: id }), {
-                onSuccess: () => Swal.fire(t("action.deleted"), "", "success"),
-            });
+            router.delete(route("admin.bookings.destroy", { booking: id }));
         }
     });
 };
 </script>
 
 <template>
-    <Head :title="t('bookings.registry_title')" />
+    <Head :title="t('admin_Booking.registry_title')" />
     <AuthenticatedLayout>
-        <div
-            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6"
-        >
-            <div
-                class="flex flex-col sm:flex-row justify-between gap-4 sm:items-center"
-            >
-                <div>
-                    <h2
-                        class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight"
-                    >
-                        {{ t("bookings.info_heading") }}
-                    </h2>
-                    <p class="text-xs sm:text-sm text-slate-500 font-medium">
-                        {{ t("bookings.sub_heading") }}
-                    </p>
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-slate-800">
+                    {{ t("admin_Booking.registry_title") }}
+                </h2>
+                <div class="w-full max-w-sm">
+                    <input
+                        v-model="searchQuery"
+                        :placeholder="t('action.search_placeholder') + '...'"
+                        class="w-full border-slate-200 rounded-xl p-3 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
                 </div>
-                <button
-                    @click="openCreateModal"
-                    class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
-                >
-                    <span class="material-icons-outlined">add_circle</span>
-                    {{ t("bookings.create_entry") }}
-                </button>
-            </div>
-
-            <div class="max-w-full sm:max-w-md relative">
-                <span
-                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                >
-                    <span class="material-icons-outlined text-xl">search</span>
-                </span>
-                <input
-                    v-model="searchQuery"
-                    type="text"
-                    :placeholder="t('action.search_placeholder')"
-                    class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 shadow-sm"
-                />
             </div>
 
             <div
-                class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+                class="overflow-hidden bg-white rounded-2xl shadow-sm border border-slate-100"
             >
-                <div class="overflow-x-auto scrollbar-hide">
-                    <table
-                        class="w-full text-left border-collapse min-w-[700px]"
-                    >
-                        <thead>
-                            <tr class="bg-slate-50 border-b">
-                                <th
-                                    class="p-4 text-[11px] font-black uppercase text-slate-500 tracking-wider"
-                                >
-                                    Visitor & Hall
-                                </th>
-                                <th
-                                    class="p-4 text-[11px] font-black uppercase text-slate-500 text-center tracking-wider"
-                                >
-                                    Date
-                                </th>
-                                <th
-                                    class="p-4 text-[11px] font-black uppercase text-slate-500 text-center tracking-wider"
-                                >
-                                    Document
-                                </th>
-                                <th
-                                    class="p-4 text-[11px] font-black uppercase text-slate-500 text-center tracking-wider"
-                                >
-                                    Status
-                                </th>
-                                <th
-                                    class="p-4 text-[11px] font-black uppercase text-slate-500 text-right tracking-wider"
-                                >
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr
-                                v-for="booking in filteredBookings"
-                                :key="booking.id"
-                                class="hover:bg-indigo-50/40 transition-colors"
+                <table class="w-full table-fixed">
+                    <thead class="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                            <th
+                                class="p-5 w-1/4 uppercase text-[11px] font-black text-slate-500 text-left"
                             >
-                                <td class="p-4">
-                                    <div
-                                        class="font-bold text-slate-800 text-sm"
-                                    >
-                                        {{ booking.visitor_name }}
-                                    </div>
-                                    <div
-                                        class="text-[11px] text-indigo-600 font-bold uppercase tracking-tight"
-                                    >
-                                        {{
-                                            booking.hall?.name ||
-                                            t("bookings.no_hall")
-                                        }}
-                                        <span class="text-slate-300 mx-1"
-                                            >|</span
-                                        >
-                                        {{ booking.number_of_visitors }}
-                                        {{ t("bookings.visitors") }}
-                                    </div>
-                                </td>
-                                <td
-                                    class="p-4 text-center text-sm text-slate-600 font-medium"
+                                {{ t("admin_Booking.visitor") }}
+                            </th>
+                            <th
+                                class="p-5 w-1/5 uppercase text-[11px] font-black text-slate-500 text-left"
+                            >
+                                {{ t("admin_Booking.date") }}
+                            </th>
+                            <th
+                                class="p-5 w-1/5 uppercase text-[11px] font-black text-slate-500 text-left"
+                            >
+                                {{ t("admin_Booking.slot") }}
+                            </th>
+                            <th
+                                class="p-5 w-1/5 uppercase text-[11px] font-black text-slate-500 text-left"
+                            >
+                                {{ t("admin_Booking.status") }}
+                            </th>
+                            <th
+                                class="p-5 w-1/6 uppercase text-[11px] font-black text-slate-500 text-left"
+                            >
+                                {{ t("action.actions") }}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr
+                            v-for="booking in filteredBookings"
+                            :key="booking.id"
+                            class="hover:bg-slate-50 transition"
+                        >
+                            <td
+                                class="p-5 text-sm font-bold text-slate-700 truncate"
+                            >
+                                {{ booking.visitor_name }}
+                            </td>
+                            <td class="p-5 text-sm text-slate-600">
+                                {{
+                                    booking.booking_date
+                                        ? booking.booking_date.split("T")[0]
+                                        : ""
+                                }}
+                            </td>
+                            <td class="p-5 text-sm text-slate-600">
+                                {{ booking.readable_slot }}
+                            </td>
+                            <td class="p-5">
+                                <select
+                                    v-model="booking.status"
+                                    @change="
+                                        updateStatus(
+                                            booking,
+                                            $event.target.value,
+                                        )
+                                    "
+                                    :disabled="
+                                        isExpired(booking.booking_date) ||
+                                        isFinalized(booking.status)
+                                    "
+                                    class="border-slate-200 rounded-lg p-2 text-[11px] uppercase font-bold cursor-pointer w-full max-w-[140px] disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                    {{ booking.booking_date }}
-                                </td>
-                                <td class="p-4 text-center">
-                                    <div v-if="booking.attachment_url">
-                                        <a
-                                            :href="booking.attachment_url"
-                                            target="_blank"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black transition-colors shadow-sm"
-                                        >
-                                            <span
-                                                class="material-icons-outlined text-sm"
-                                                >visibility</span
-                                            >
-                                            VIEW PDF
-                                        </a>
-                                    </div>
-                                    <div
-                                        v-else
-                                        class="text-slate-300 flex flex-col items-center"
-                                    >
-                                        <span
-                                            class="material-icons-outlined text-lg"
-                                            >block</span
-                                        >
-                                        <span
-                                            class="text-[9px] uppercase font-black"
-                                            >No File</span
-                                        >
-                                    </div>
-                                </td>
-                                <td class="p-4 text-center">
-                                    <select
-                                        :value="booking.status"
-                                        @change="
-                                            updateStatus(
-                                                booking,
-                                                $event.target.value,
-                                            )
-                                        "
-                                        class="text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border border-slate-200 bg-white focus:ring-indigo-500 cursor-pointer"
-                                    >
-                                        <option
-                                            v-for="s in [
-                                                'pending',
-                                                'approved',
-                                                'cancelled',
-                                                'extended',
-                                                'completed',
-                                                'rejected',
-                                            ]"
-                                            :key="s"
-                                            :value="s"
-                                        >
-                                            {{ s.toUpperCase() }}
-                                        </option>
-                                    </select>
-                                </td>
-                                <td class="p-4 text-right">
-                                    <div class="flex justify-end gap-2">
-                                        <button
-                                            @click="openEditModal(booking)"
-                                            class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                                            title="Update"
-                                        >
-                                            <span
-                                                class="material-icons-outlined text-lg"
-                                                >edit</span
-                                            >
-                                        </button>
-                                        <button
-                                            @click="deleteBooking(booking.id)"
-                                            class="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm"
-                                            title="Delete"
-                                        >
-                                            <span
-                                                class="material-icons-outlined text-lg"
-                                                >delete</span
-                                            >
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div
-                    v-if="filteredBookings.length === 0"
-                    class="p-12 text-center"
-                >
-                    <span
-                        class="material-icons-outlined text-5xl text-slate-200"
-                        >history_edu</span
-                    >
-                    <p
-                        class="mt-2 text-slate-400 font-bold uppercase text-xs tracking-widest"
-                    >
-                        No Records Found
-                    </p>
-                </div>
+                                    <option value="pending">
+                                        {{ t("status.pending") }}
+                                    </option>
+                                    <option value="approved">
+                                        {{ t("status.approved") }}
+                                    </option>
+                                    <option value="confirmed">
+                                        {{ t("status.confirmed") }}
+                                    </option>
+                                    <option value="arrived">
+                                        {{ t("status.arrived") }}
+                                    </option>
+                                    <option value="no-show">
+                                        {{ t("status.no_show") }}
+                                    </option>
+                                    <option value="cancelled">
+                                        {{ t("status.cancelled") }}
+                                    </option>
+                                    <option value="rejected">
+                                        {{ t("status.rejected") }}
+                                    </option>
+                                    <option value="completed">
+                                        {{ t("status.completed") }}
+                                    </option>
+                                </select>
+                            </td>
+                            <td class="p-5">
+                                <button
+                                    @click="deleteBooking(booking.id)"
+                                    class="text-rose-600 text-xs font-bold hover:underline"
+                                >
+                                    {{ t("action.delete") }}
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
-
-<style scoped>
-/* Custom scrollbar for better appearance on Windows/PC */
-.overflow-x-auto::-webkit-scrollbar {
-    height: 6px;
-}
-.overflow-x-auto::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-.overflow-x-auto::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-}
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-</style>

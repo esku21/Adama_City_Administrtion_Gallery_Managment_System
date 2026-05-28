@@ -132,7 +132,7 @@ const deleteHall = (id) => {
                 <Languages :size="16" />
             </div>
             <button
-                v-for="lang in ['en', 'am', 'om']"
+                v-for="lang in ['en', 'am', 'or']"
                 :key="lang"
                 @click="changeLanguage(lang)"
                 :class="

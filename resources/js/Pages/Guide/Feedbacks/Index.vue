@@ -16,7 +16,7 @@ const showSuccessPopup = ref(false);
 const successMessage = ref("");
 
 watch(
-    () => page.props.flash.success,
+    () => page.props.flash?.success,
     (msg) => {
         if (msg) {
             successMessage.value = msg;
@@ -225,28 +225,3 @@ const filteredFeedbacks = computed(() => {
         </div>
     </GuideLayout>
 </template>
-
-<style scoped>
-.material-icons-outlined,
-.material-icons {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.pop-enter-active,
-.pop-leave-active {
-    transition: all 0.3s ease;
-}
-.pop-enter-from,
-.pop-leave-to {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.9);
-}
-.leading-relaxed {
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-</style>

@@ -43,7 +43,7 @@ onMounted(() => {
     if (savedLang) locale.value = savedLang;
 });
 
-// Dynamic Navigation Items
+// Navigation logic
 const navItems = computed(() => {
     if (userRole.value === "admin") {
         return [
@@ -206,16 +206,13 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
                         <p
                             class="text-[10px] text-indigo-600 uppercase font-bold tracking-widest leading-tight"
                         >
-                            {{
-                                userRole === "admin"
-                                    ? "Management"
-                                    : "User Portal"
-                            }}
+                            {{ userRole === "admin" ? "" : "User Portal" }}
                         </p>
                         <p
                             class="text-lg font-bold text-slate-900 truncate tracking-tight"
                         >
-                            City Gallery
+                            Adama City Gallery <br>
+                            Portal</br>
                         </p>
                     </div>
                 </div>
@@ -238,15 +235,13 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
                 >
                     <span
                         class="material-icons-round text-2xl transition-all duration-300 group-hover:scale-110"
+                        >{{ item.icon }}</span
                     >
-                        {{ item.icon }}
-                    </span>
                     <span
                         v-if="!isSidebarCollapsed || isMobileMenuOpen"
                         class="text-sm font-bold uppercase tracking-wider truncate"
+                        >{{ t(`${item.prefix}.${item.name}`) }}</span
                     >
-                        {{ t(`${item.prefix}.${item.name}`) }}
-                    </span>
                 </Link>
 
                 <div class="my-6 border-t-2 border-slate-100"></div>
@@ -265,15 +260,13 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
                 >
                     <span
                         class="material-icons-round text-2xl transition-all duration-300 group-hover:scale-110"
+                        >{{ item.icon }}</span
                     >
-                        {{ item.icon }}
-                    </span>
                     <span
                         v-if="!isSidebarCollapsed || isMobileMenuOpen"
                         class="text-sm font-bold uppercase tracking-wider truncate"
+                        >{{ t(`${item.prefix}.${item.name}`) }}</span
                     >
-                        {{ t(`${item.prefix}.${item.name}`) }}
-                    </span>
                 </Link>
 
                 <button
@@ -287,9 +280,8 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
                     <span
                         v-if="!isSidebarCollapsed || isMobileMenuOpen"
                         class="text-sm font-bold uppercase tracking-wider"
+                        >{{ t("nav1.logout") }}</span
                     >
-                        {{ t("nav1.logout") }}
-                    </span>
                 </button>
             </nav>
         </aside>
@@ -303,40 +295,33 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
             <header
                 class="h-24 bg-white/90 backdrop-blur-xl sticky top-0 z-40 flex justify-between items-center px-4 lg:px-10 border-b-2 border-slate-200/60 shadow-sm"
             >
-                <div class="flex items-center gap-4">
-                    <button
-                        @click="isMobileMenuOpen = true"
-                        class="lg:hidden p-2 hover:bg-slate-100 rounded-xl"
+                <button
+                    @click="isMobileMenuOpen = true"
+                    class="lg:hidden p-2 hover:bg-slate-100 rounded-xl"
+                >
+                    <span class="material-icons-round text-3xl text-slate-700"
+                        >menu</span
                     >
-                        <span
-                            class="material-icons-round text-3xl text-slate-700"
-                            >menu</span
-                        >
-                    </button>
-                    <button
-                        @click="isSidebarCollapsed = !isSidebarCollapsed"
-                        class="hidden lg:flex items-center justify-center w-12 h-12 rounded-xl bg-slate-50 hover:bg-indigo-600 text-slate-500 hover:text-white border-2 border-slate-200 transition-all active:scale-90"
-                    >
-                        <span class="material-icons-round text-2xl">
-                            {{
-                                isSidebarCollapsed
-                                    ? "menu_open"
-                                    : "format_indent_decrease"
-                            }}
-                        </span>
-                    </button>
-                </div>
-
-                <div class="flex items-center gap-3 lg:gap-6">
+                </button>
+                <button
+                    @click="isSidebarCollapsed = !isSidebarCollapsed"
+                    class="hidden lg:flex items-center justify-center w-12 h-12 rounded-xl bg-slate-50 hover:bg-indigo-600 text-slate-500 hover:text-white border-2 border-slate-200 transition-all active:scale-90"
+                >
+                    <span class="material-icons-round text-2xl">{{
+                        isSidebarCollapsed
+                            ? "menu_open"
+                            : "format_indent_decrease"
+                    }}</span>
+                </button>
+                <div class="flex items-center gap-6">
                     <button
                         @click="toggleLocale"
                         class="text-xs font-bold px-3 py-2 bg-white rounded-xl border-2 border-slate-200 hover:border-indigo-500 uppercase tracking-widest shadow-sm"
                     >
                         {{ locale }}
                     </button>
-
                     <div
-                        class="flex items-center gap-3 pl-3 lg:pl-6 border-l-2 border-slate-200"
+                        class="flex items-center gap-3 pl-6 border-l-2 border-slate-200"
                     >
                         <div class="text-right hidden sm:block">
                             <p
@@ -350,7 +335,7 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
                             >
                         </div>
                         <div
-                            class="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-lg border-2 border-white"
+                            class="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-lg"
                         >
                             {{ user?.name?.charAt(0).toUpperCase() }}
                         </div>
@@ -359,9 +344,7 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
             </header>
 
             <main class="flex-1 p-4 lg:p-8 overflow-y-auto">
-                <div class="max-w-[1600px] mx-auto">
-                    <slot />
-                </div>
+                <div class="max-w-[1600px] mx-auto"><slot /></div>
             </main>
         </div>
 
@@ -383,15 +366,12 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
 .nav-link {
     @apply flex items-center gap-5 px-5 py-4 rounded-2xl transition-all duration-300 border-l-4;
 }
-
 .nav-active {
     @apply bg-indigo-600 text-white shadow-xl shadow-indigo-200 border-indigo-800 translate-x-1;
 }
-
 .nav-inactive {
-    @apply text-slate-500 hover:bg-slate-100 hover:text-slate-900 border-transparent;
+    @apply text-slate-500 border-transparent hover:bg-slate-100 hover:text-slate-900 hover:translate-x-1;
 }
-
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
 }
@@ -408,7 +388,6 @@ const closeMobileMenu = () => (isMobileMenuOpen.value = false);
 .fade-leave-to {
     opacity: 0;
 }
-
 .slide-up-enter-active {
     transition: all 0.3s ease-out;
 }

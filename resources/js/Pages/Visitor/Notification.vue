@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import VisitorLayout from "@/Layouts/VisitorLayout.vue";
-import { Head, router, Link, usePage } from "@inertiajs/vue3";
+import { Head, router, Link } from "@inertiajs/vue3";
 import { useI18n } from "vue-i18n";
 import {
     BellOff,
@@ -13,6 +13,7 @@ import {
     RefreshCw,
     AlertTriangle,
     Filter,
+    Globe,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -22,7 +23,13 @@ const props = defineProps({
     },
 });
 
-const { t } = useI18n();
+// Extract tools from useI18n to dynamically switch active language contexts
+const { t, locale } = useI18n();
+
+const changeLanguage = (lang) => {
+    locale.value = lang;
+    localStorage.setItem("locale", lang);
+};
 
 // -------------------- REACTIVE COUNTER --------------------
 const notificationsCount = computed(() => {
@@ -39,14 +46,14 @@ const markAllRead = () => {
 };
 
 const deleteNotification = (id) => {
-    if (!confirm(t("notifications.confirm_delete"))) return;
+    if (!confirm(t("visitor_notification.confirm_delete"))) return;
     router.delete(route("visitor.notifications.destroy", id), {
         preserveScroll: true,
     });
 };
 
 const clearAllNotifications = () => {
-    if (!confirm(t("notifications.confirm_clear"))) return;
+    if (!confirm(t("visitor_notification.confirm_clear"))) return;
     router.delete(route("visitor.notifications.destroyAll"), {
         preserveScroll: true,
     });
@@ -89,13 +96,14 @@ const formatDate = (dateString) => {
 </script>
 
 <template>
-    <Head :title="$t('nav.notifications')" />
+    <Head :title="$t('visitor_notification.nav_title')" />
 
     <VisitorLayout>
-        <template #header> {{ $t("nav.notifications") }} </template>
+        <template #header>
+            {{ $t("visitor_notification.nav_title") }}
+        </template>
 
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Emergency Alert Bar -->
             <transition name="fade">
                 <div v-if="notificationsCount > 0" class="mb-8">
                     <div
@@ -110,13 +118,13 @@ const formatDate = (dateString) => {
                             <h3
                                 class="font-black text-rose-950 uppercase tracking-wider text-xs"
                             >
-                                {{ $t("notifications.emergency_title") }}
+                                {{ $t("visitor_notification.emergency_title") }}
                             </h3>
                             <p
                                 class="text-rose-800 text-base font-semibold mt-1"
                             >
                                 {{
-                                    $t("notifications.emergency_desc", {
+                                    $t("visitor_notification.emergency_desc", {
                                         count: notificationsCount,
                                     })
                                 }}
@@ -126,19 +134,61 @@ const formatDate = (dateString) => {
                 </div>
             </transition>
 
-            <!-- Header Actions -->
             <div
                 class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8"
             >
-                <div>
-                    <h1
-                        class="text-2xl font-black text-slate-800 tracking-tight"
+                <div class="flex flex-col md:flex-row md:items-center gap-4">
+                    <div>
+                        <h1
+                            class="text-2xl font-black text-slate-800 tracking-tight"
+                        >
+                            {{ $t("visitor_notification.title") }}
+                        </h1>
+                        <p class="text-sm text-slate-500 font-medium">
+                            {{ $t("visitor_notification.subtitle") }}
+                        </p>
+                    </div>
+
+                    <div
+                        class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start md:self-center"
                     >
-                        {{ $t("notifications.title") }}
-                    </h1>
-                    <p class="text-sm text-slate-500 font-medium">
-                        {{ $t("notifications.subtitle") }}
-                    </p>
+                        <div class="p-1.5 text-slate-400">
+                            <Globe class="w-4 h-4" />
+                        </div>
+                        <button
+                            @click="changeLanguage('or')"
+                            :class="[
+                                locale === 'or'
+                                    ? 'bg-white text-indigo-600 shadow-sm font-bold'
+                                    : 'text-slate-600 hover:text-slate-900',
+                            ]"
+                            class="px-2.5 py-1 text-xs rounded-lg transition-all"
+                        >
+                            OR
+                        </button>
+                        <button
+                            @click="changeLanguage('am')"
+                            :class="[
+                                locale === 'am'
+                                    ? 'bg-white text-indigo-600 shadow-sm font-bold'
+                                    : 'text-slate-600 hover:text-slate-900',
+                            ]"
+                            class="px-2.5 py-1 text-xs rounded-lg transition-all"
+                        >
+                            AM
+                        </button>
+                        <button
+                            @click="changeLanguage('en')"
+                            :class="[
+                                locale === 'en'
+                                    ? 'bg-white text-indigo-600 shadow-sm font-bold'
+                                    : 'text-slate-600 hover:text-slate-900',
+                            ]"
+                            class="px-2.5 py-1 text-xs rounded-lg transition-all"
+                        >
+                            EN
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex flex-wrap gap-2">
@@ -147,7 +197,7 @@ const formatDate = (dateString) => {
                         class="px-4 py-2 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-sm"
                     >
                         <RefreshCw class="w-4 h-4" />
-                        {{ $t("notifications.clear_all") }}
+                        {{ $t("visitor_notification.clear_all") }}
                     </button>
 
                     <button
@@ -155,12 +205,11 @@ const formatDate = (dateString) => {
                         class="px-5 py-2 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-lg"
                     >
                         <CheckCheck class="w-4 h-4" />
-                        {{ $t("notifications.mark_read") }}
+                        {{ $t("visitor_notification.mark_read") }}
                     </button>
                 </div>
             </div>
 
-            <!-- Filters -->
             <div class="flex gap-2 mb-8 flex-wrap">
                 <button
                     @click="filterType = 'all'"
@@ -171,7 +220,7 @@ const formatDate = (dateString) => {
                     "
                     class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all"
                 >
-                    {{ $t("notifications.filter_all") }}
+                    {{ $t("visitor_notification.filter_all") }}
                 </button>
                 <button
                     @click="filterType = 'unread'"
@@ -182,7 +231,7 @@ const formatDate = (dateString) => {
                     "
                     class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all"
                 >
-                    {{ $t("notifications.filter_unread") }}
+                    {{ $t("visitor_notification.filter_unread") }}
                 </button>
                 <button
                     @click="filterType = 'important'"
@@ -194,11 +243,10 @@ const formatDate = (dateString) => {
                     class="px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all"
                 >
                     <Filter class="w-4 h-4" />
-                    {{ $t("notifications.filter_important") }}
+                    {{ $t("visitor_notification.filter_important") }}
                 </button>
             </div>
 
-            <!-- Notification List -->
             <div
                 v-if="filteredNotifications.length === 0"
                 class="bg-white border-2 border-dashed border-slate-100 rounded-[2.5rem] py-20 text-center"
@@ -209,10 +257,10 @@ const formatDate = (dateString) => {
                     <BellOff class="w-8 h-8 text-slate-300" />
                 </div>
                 <h3 class="text-lg font-bold text-slate-800">
-                    {{ $t("notifications.empty_title") }}
+                    {{ $t("visitor_notification.empty_title") }}
                 </h3>
                 <p class="text-sm text-slate-400 mt-1">
-                    {{ $t("notifications.empty_desc") }}
+                    {{ $t("visitor_notification.empty_desc") }}
                 </p>
             </div>
 
@@ -270,14 +318,12 @@ const formatDate = (dateString) => {
                         </button>
                     </div>
 
-                    <!-- THE FIX: This displays the 'content' column from your DB -->
                     <p
                         class="text-sm text-slate-600 mb-4 leading-relaxed font-medium"
                     >
                         {{ item.content }}
                     </p>
 
-                    <!-- Rebooking Action -->
                     <div
                         v-if="item.reschedule_date"
                         class="mt-4 p-5 bg-indigo-600 rounded-2xl flex justify-between items-center flex-wrap gap-4 shadow-lg shadow-indigo-200"
@@ -286,7 +332,7 @@ const formatDate = (dateString) => {
                             <p
                                 class="text-[10px] font-black uppercase tracking-widest opacity-80"
                             >
-                                {{ $t("notifications.suggested_slot") }}
+                                {{ $t("visitor_notification.suggested_slot") }}
                             </p>
                             <p class="text-sm font-bold mt-0.5">
                                 {{ formatDate(item.reschedule_date) }}
@@ -300,7 +346,7 @@ const formatDate = (dateString) => {
                             "
                             class="px-5 py-2.5 bg-white text-indigo-600 text-xs font-black rounded-xl flex items-center gap-2 transition hover:bg-slate-50"
                         >
-                            {{ $t("notifications.accept_rebook") }}
+                            {{ $t("visitor_notification.accept_rebook") }}
                             <ArrowRight class="w-4 h-4" />
                         </Link>
                     </div>

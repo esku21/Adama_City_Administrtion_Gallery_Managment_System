@@ -1,12 +1,21 @@
 <script setup>
 import { useForm, router, Head } from "@inertiajs/vue3";
 import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps({
     images: Array,
 });
 
-// --- STATE ---
+// ================= I18N =================
+const { t, locale } = useI18n();
+
+const changeLanguage = (lang) => {
+    locale.value = lang;
+    localStorage.setItem("lang", lang);
+};
+
+// ================= STATE =================
 const isEditing = ref(false);
 const editId = ref(null);
 const showSuccessPopup = ref(false);
@@ -23,7 +32,7 @@ const form = useForm({
     image: null,
 });
 
-// --- COMPUTED ---
+// ================= COMPUTED =================
 const filteredImages = computed(() => {
     return props.images.filter((img) =>
         img.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
@@ -39,7 +48,7 @@ const totalPages = computed(() =>
     Math.ceil(filteredImages.value.length / perPage),
 );
 
-// --- FILE HANDLING ---
+// ================= FILE HANDLING =================
 const handleFileChange = (e) => {
     const file = e.target.files[0];
     processFile(file);
@@ -59,11 +68,14 @@ const processFile = (file) => {
     }
 };
 
-// --- ACTIONS ---
+// ================= ACTIONS =================
 const triggerPopup = (msg) => {
     popupMessage.value = msg;
     showSuccessPopup.value = true;
-    setTimeout(() => (showSuccessPopup.value = false), 3000);
+
+    setTimeout(() => {
+        showSuccessPopup.value = false;
+    }, 3000);
 };
 
 const resetForm = () => {
@@ -75,7 +87,7 @@ const resetForm = () => {
 
 const submit = () => {
     if (!form.title) {
-        alert("Please enter a title");
+        alert(t("admin_Gallery.enter_title"));
         return;
     }
 
@@ -85,17 +97,25 @@ const submit = () => {
 
     form.post(routeName, {
         forceFormData: true,
+
         onSuccess: () => {
             triggerPopup(
-                isEditing.value ? "Asset Updated ✨" : "Image Published 🚀",
+                isEditing.value
+                    ? t("admin_Gallery.asset_updated")
+                    : t("admin_Gallery.image_published"),
             );
+
             resetForm();
         },
     });
 };
 
 const editImage = (img) => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+    });
+
     isEditing.value = true;
     editId.value = img.id;
     form.title = img.title;
@@ -103,26 +123,30 @@ const editImage = (img) => {
 };
 
 const deleteImage = (id) => {
-    if (confirm("Are you sure you want to permanently remove this asset?")) {
+    if (confirm(t("admin_Gallery.confirm_delete"))) {
         router.delete(route("admin.gallery.destroy", id), {
-            onSuccess: () => triggerPopup("Deleted successfully"),
+            onSuccess: () => {
+                triggerPopup(t("admin_Gallery.deleted_success"));
+            },
         });
     }
 };
 
 const deleteSelected = () => {
-    if (confirm(`Delete ${selectedItems.value.length} selected items?`)) {
+    if (
+        confirm(
+            `${t("admin_Gallery.delete_selected")} ${
+                selectedItems.value.length
+            } ?`,
+        )
+    ) {
         selectedItems.value.forEach((id) => {
             router.delete(route("admin.gallery.destroy", id), {
                 preserveScroll: true,
+
                 onSuccess: () => {
-                    if (
-                        selectedItems.value.indexOf(id) ===
-                        selectedItems.value.length - 1
-                    ) {
-                        triggerPopup("Bulk operation complete");
-                        selectedItems.value = [];
-                    }
+                    triggerPopup(t("admin_Gallery.bulk_complete"));
+                    selectedItems.value = [];
                 },
             });
         });
@@ -131,8 +155,9 @@ const deleteSelected = () => {
 </script>
 
 <template>
-    <Head title="Gallery Management" />
+    <Head :title="t('admin_Gallery.page_title')" />
 
+    <!-- SUCCESS POPUP -->
     <Transition name="fade-slide">
         <div
             v-if="showSuccessPopup"
@@ -141,47 +166,100 @@ const deleteSelected = () => {
             <div
                 class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"
             ></div>
-            <span class="text-sm font-bold tracking-wide">{{
-                popupMessage
-            }}</span>
+
+            <span class="text-sm font-bold tracking-wide">
+                {{ popupMessage }}
+            </span>
         </div>
     </Transition>
 
     <div class="min-h-screen bg-[#F8FAFC] p-4 md:p-10 font-sans text-slate-900">
+        <!-- HEADER -->
         <header
-            class="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6"
+            class="max-w-7xl mx-auto mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6"
         >
             <div>
                 <h1 class="text-4xl font-black tracking-tight text-slate-900">
-                    Gallery <span class="text-indigo-600">Studio</span>
+                    {{ t("admin_Gallery.gallery") }}
+                    <span class="text-indigo-600">
+                        {{ t("admin_Gallery.studio") }}
+                    </span>
                 </h1>
-                <p class="text-slate-500 font-medium mt-1">
-                    Manage your digital assets and visual story.
+
+                <p class="text-slate-500 font-medium mt-2">
+                    {{ t("admin_Gallery.description") }}
                 </p>
             </div>
 
-            <div class="flex items-center gap-3">
+            <!-- LANGUAGE SWITCH -->
+            <div class="flex flex-wrap items-center gap-3">
+                <div
+                    class="flex items-center bg-white border border-slate-200 rounded-2xl p-2 shadow-sm"
+                >
+                    <button
+                        @click="changeLanguage('en')"
+                        :class="[
+                            'px-4 py-2 rounded-xl text-sm font-bold transition-all',
+                            locale === 'en'
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-slate-600 hover:bg-slate-100',
+                        ]"
+                    >
+                        EN
+                    </button>
+
+                    <button
+                        @click="changeLanguage('am')"
+                        :class="[
+                            'px-4 py-2 rounded-xl text-sm font-bold transition-all',
+                            locale === 'am'
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-slate-600 hover:bg-slate-100',
+                        ]"
+                    >
+                        AM
+                    </button>
+
+                    <button
+                        @click="changeLanguage('or')"
+                        :class="[
+                            'px-4 py-2 rounded-xl text-sm font-bold transition-all',
+                            locale === 'or'
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-slate-600 hover:bg-slate-100',
+                        ]"
+                    >
+                        OR
+                    </button>
+                </div>
+
                 <button
                     v-if="selectedItems.length"
                     @click="deleteSelected"
                     class="bg-rose-100 text-rose-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-rose-600 hover:text-white transition-all shadow-sm"
                 >
-                    Delete Selection ({{ selectedItems.length }})
+                    {{ t("admin_Gallery.delete_selection") }}
+                    ({{ selectedItems.length }})
                 </button>
+
                 <div
                     class="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2"
                 >
                     <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+
                     <span
                         class="text-xs font-black text-slate-600 uppercase tracking-widest"
-                        >Admin Mode</span
                     >
+                        {{ t("admin_Gallery.admin_mode") }}
+                    </span>
                 </div>
             </div>
         </header>
 
         <main class="max-w-7xl mx-auto">
+            <!-- TOP GRID -->
             <div class="grid lg:grid-cols-3 gap-8 mb-16">
+                <!-- FORM -->
                 <div
                     class="lg:col-span-2 bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 border border-slate-100"
                 >
@@ -190,24 +268,27 @@ const deleteSelected = () => {
                             <span
                                 class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600"
                             >
-                                i
+                                📁
                             </span>
+
                             {{
                                 isEditing
-                                    ? "Edit Existing Asset"
-                                    : "Add New Asset"
+                                    ? t("admin_Gallery.edit_asset")
+                                    : t("admin_Gallery.add_asset")
                             }}
                         </h2>
+
                         <button
                             v-if="isEditing"
                             @click="resetForm"
                             class="text-xs font-bold text-slate-400 hover:text-rose-500 uppercase tracking-widest"
                         >
-                            Cancel Edit
+                            {{ t("admin_Gallery.cancel_edit") }}
                         </button>
                     </div>
 
                     <div class="space-y-6">
+                        <!-- DROPZONE -->
                         <div
                             @dragover.prevent="isDragging = true"
                             @dragleave="isDragging = false"
@@ -224,40 +305,53 @@ const deleteSelected = () => {
                                 @change="handleFileChange"
                                 class="absolute inset-0 opacity-0 cursor-pointer z-10"
                             />
+
                             <div class="space-y-3">
                                 <div
                                     class="w-16 h-16 bg-white rounded-2xl shadow-sm mx-auto flex items-center justify-center text-2xl group-hover:scale-110 transition-transform"
                                 >
                                     {{ isDragging ? "📥" : "📸" }}
                                 </div>
+
                                 <div>
                                     <p class="text-lg font-bold text-slate-700">
-                                        Drag images here
+                                        {{
+                                            t("admin_Gallery.drag_images_here")
+                                        }}
                                     </p>
+
                                     <p class="text-sm text-slate-400">
-                                        or
-                                        <span class="text-indigo-600 underline"
-                                            >browse files</span
-                                        >
-                                        from device
+                                        {{ t("admin_Gallery.or") }}
+
+                                        <span class="text-indigo-600 underline">
+                                            {{
+                                                t("admin_Gallery.browse_files")
+                                            }}
+                                        </span>
+
+                                        {{ t("admin_Gallery.from_device") }}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- FORM INPUT -->
                         <div class="grid md:grid-cols-2 gap-4">
                             <div class="space-y-2">
                                 <label
                                     class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
-                                    >Internal Title</label
                                 >
+                                    {{ t("admin_Gallery.internal_title") }}
+                                </label>
+
                                 <input
                                     v-model="form.title"
                                     type="text"
-                                    placeholder="Entry name..."
+                                    :placeholder="t('admin_Gallery.entry_name')"
                                     class="w-full bg-slate-50 border-none rounded-xl p-4 text-slate-700 font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
                                 />
                             </div>
+
                             <div class="flex items-end">
                                 <button
                                     @click="submit"
@@ -266,10 +360,10 @@ const deleteSelected = () => {
                                 >
                                     {{
                                         form.processing
-                                            ? "UPLOADING..."
+                                            ? t("admin_Gallery.uploading")
                                             : isEditing
-                                              ? "UPDATE ASSET"
-                                              : "PUBLISH ASSET"
+                                              ? t("admin_Gallery.update_asset")
+                                              : t("admin_Gallery.publish_asset")
                                     }}
                                 </button>
                             </div>
@@ -277,14 +371,15 @@ const deleteSelected = () => {
                     </div>
                 </div>
 
+                <!-- PREVIEW -->
                 <div
-                    class="bg-slate-900 rounded-[2rem] p-8 text-white flex flex-col relative overflow-hidden group"
+                    class="bg-slate-900 rounded-[2rem] p-8 text-white flex flex-col relative overflow-hidden"
                 >
                     <div class="relative z-10">
                         <h3
                             class="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-4"
                         >
-                            Live Preview
+                            {{ t("admin_Gallery.live_preview") }}
                         </h3>
 
                         <div
@@ -303,7 +398,10 @@ const deleteSelected = () => {
                             class="aspect-video rounded-2xl border border-dashed border-white/20 flex flex-col items-center justify-center text-white/20"
                         >
                             <span class="text-4xl mb-2">👁️</span>
-                            <p class="text-xs font-bold">Awaiting Content</p>
+
+                            <p class="text-xs font-bold">
+                                {{ t("admin_Gallery.awaiting_content") }}
+                            </p>
                         </div>
 
                         <div class="mt-6">
@@ -317,46 +415,57 @@ const deleteSelected = () => {
                                     }"
                                 ></div>
                             </div>
+
                             <p class="text-xl font-bold truncate">
-                                {{ form.title || "Untitled Asset" }}
+                                {{
+                                    form.title ||
+                                    t("admin_Gallery.untitled_asset")
+                                }}
                             </p>
                         </div>
                     </div>
+
                     <div
                         class="absolute -bottom-20 -right-20 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl"
                     ></div>
                 </div>
             </div>
 
+            <!-- SEARCH -->
             <div
                 class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4"
             >
                 <h2 class="text-2xl font-black text-slate-800">
-                    Library Catalog
+                    {{ t("admin_Gallery.library_catalog") }}
                 </h2>
+
                 <div class="relative w-full md:w-80">
                     <input
                         v-model="searchQuery"
                         type="text"
-                        placeholder="Filter by title..."
+                        :placeholder="t('admin_Gallery.filter_title')"
                         class="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                     />
+
                     <span
                         class="absolute left-4 top-1/2 -translate-y-1/2 grayscale"
-                        >🔍</span
                     >
+                        🔍
+                    </span>
                 </div>
             </div>
 
+            <!-- EMPTY -->
             <div
                 v-if="filteredImages.length === 0"
                 class="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200"
             >
                 <p class="text-slate-400 font-bold tracking-tight">
-                    No assets found in the archive.
+                    {{ t("admin_Gallery.no_assets") }}
                 </p>
             </div>
 
+            <!-- GALLERY -->
             <div
                 class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
             >
@@ -370,6 +479,7 @@ const deleteSelected = () => {
                             :src="img.url"
                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
+
                         <div class="absolute top-4 left-4">
                             <input
                                 type="checkbox"
@@ -378,6 +488,7 @@ const deleteSelected = () => {
                                 class="w-5 h-5 rounded-lg border-none bg-white/80 text-indigo-600 focus:ring-0 cursor-pointer"
                             />
                         </div>
+
                         <div
                             class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4"
                         >
@@ -386,41 +497,48 @@ const deleteSelected = () => {
                                     @click="editImage(img)"
                                     class="flex-1 bg-white/20 backdrop-blur-md text-white py-2 rounded-xl text-xs font-bold hover:bg-white hover:text-slate-900 transition-colors"
                                 >
-                                    Edit
+                                    {{ t("admin_Gallery.edit") }}
                                 </button>
+
                                 <button
                                     @click="deleteImage(img.id)"
                                     class="flex-1 bg-rose-500/20 backdrop-blur-md text-white py-2 rounded-xl text-xs font-bold hover:bg-rose-500 transition-colors"
                                 >
-                                    Delete
+                                    {{ t("admin_Gallery.delete") }}
                                 </button>
                             </div>
                         </div>
                     </div>
+
                     <div class="p-5">
                         <h3 class="font-bold text-slate-800 truncate">
                             {{ img.title }}
                         </h3>
+
                         <div class="flex items-center justify-between mt-4">
                             <span
                                 class="text-[10px] font-black text-slate-300 uppercase tracking-tighter"
-                                >#ADAM-{{ img.id }}</span
                             >
+                                #ADAM-{{ img.id }}
+                            </span>
+
                             <div
                                 class="flex gap-3 text-[11px] font-bold text-slate-500"
                             >
-                                <span class="flex items-center gap-1"
-                                    >❤️ {{ img.likes_count || 0 }}</span
-                                >
-                                <span class="flex items-center gap-1"
-                                    >👁️ {{ img.views_count || 0 }}</span
-                                >
+                                <span class="flex items-center gap-1">
+                                    ❤️ {{ img.likes_count || 0 }}
+                                </span>
+
+                                <span class="flex items-center gap-1">
+                                    👁️ {{ img.views_count || 0 }}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- PAGINATION -->
             <div v-if="totalPages > 1" class="flex justify-center mt-12 gap-3">
                 <button
                     v-for="page in totalPages"
@@ -445,10 +563,12 @@ const deleteSelected = () => {
 .fade-slide-leave-active {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .fade-slide-enter-from {
     opacity: 0;
     transform: translateY(-20px);
 }
+
 .fade-slide-leave-to {
     opacity: 0;
     transform: scale(0.9);

@@ -52,20 +52,22 @@ const updateProfile = () => {
     <Head :title="t('admin_profile.title')" />
 
     <AuthenticatedLayout>
-        <div class="max-w-4xl mx-auto animate-in fade-in duration-700 p-4">
+        <div
+            class="max-w-5xl mx-auto animate-in fade-in duration-700 p-4 md:p-6"
+        >
             <div
-                class="bg-white border border-slate-200 p-6 md:p-8 rounded-3xl shadow-sm relative overflow-hidden mt-2"
+                class="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-lg relative overflow-hidden mt-4"
             >
                 <form
                     @submit.prevent="updateProfile"
-                    class="space-y-6 relative z-10"
+                    class="space-y-10 relative z-10"
                 >
                     <div
-                        class="flex flex-col md:flex-row md:items-center gap-5 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200"
+                        class="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-3xl border border-dashed border-slate-300"
                     >
-                        <div class="relative inline-block">
+                        <div class="relative">
                             <div
-                                class="h-20 w-20 rounded-2xl bg-white border-2 border-white shadow-md overflow-hidden flex items-center justify-center"
+                                class="h-28 w-28 rounded-3xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center"
                             >
                                 <img
                                     v-if="photoPreview"
@@ -79,15 +81,14 @@ const updateProfile = () => {
                                 />
                                 <span
                                     v-else
-                                    class="material-icons-outlined text-slate-300 text-3xl"
+                                    class="material-icons-outlined text-slate-300 text-5xl"
                                     >person</span
                                 >
                             </div>
-
                             <label
-                                class="absolute -bottom-1 -right-1 h-7 w-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white cursor-pointer shadow-md hover:bg-indigo-700 transition-all"
+                                class="absolute -bottom-2 -right-2 h-10 w-10 bg-indigo-600 rounded-full flex items-center justify-center text-white cursor-pointer shadow-lg hover:bg-indigo-700 transition-all border-4 border-white"
                             >
-                                <span class="material-icons-outlined text-xs"
+                                <span class="material-icons-outlined text-sm"
                                     >photo_camera</span
                                 >
                                 <input
@@ -100,29 +101,27 @@ const updateProfile = () => {
                             </label>
                         </div>
 
-                        <div class="flex-1">
+                        <div class="flex-1 text-center sm:text-left">
                             <h4
-                                class="text-[10px] font-black uppercase text-slate-800 tracking-wider"
+                                class="text-sm font-black uppercase text-slate-800 tracking-wider"
                             >
                                 {{ t("admin_profile.avatar_title") }}
                             </h4>
-                            <p class="text-[10px] text-slate-500 mt-1">
+                            <p class="text-xs text-slate-500 mt-1 max-w-sm">
                                 {{ t("admin_profile.avatar_help") }}
                             </p>
-                            <div class="flex gap-2 mt-3">
-                                <button
-                                    type="button"
-                                    @click="fileInput.click()"
-                                    class="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-white border border-slate-200 rounded-md hover:bg-slate-100 transition-all"
-                                >
-                                    {{ t("admin_profile.change_photo") }}
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                @click="fileInput.click()"
+                                class="mt-4 text-xs font-bold uppercase tracking-widest px-6 py-2.5 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-all"
+                            >
+                                {{ t("admin_profile.change_photo") }}
+                            </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1.5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-2">
                             <label class="label">{{
                                 t("admin_profile.first_name")
                             }}</label>
@@ -132,7 +131,7 @@ const updateProfile = () => {
                                 class="input-field"
                             />
                         </div>
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             <label class="label">{{
                                 t("admin_profile.last_name")
                             }}</label>
@@ -142,10 +141,7 @@ const updateProfile = () => {
                                 class="input-field"
                             />
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             <label class="label">{{
                                 t("admin_profile.phone")
                             }}</label>
@@ -157,13 +153,12 @@ const updateProfile = () => {
                             />
                             <div
                                 v-if="form.errors.phone_no"
-                                class="text-rose-500 text-[9px] font-bold uppercase mt-1"
+                                class="text-rose-500 text-xs font-bold uppercase mt-1"
                             >
                                 {{ form.errors.phone_no }}
                             </div>
                         </div>
-
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             <label class="label">{{
                                 t("admin_profile.email")
                             }}</label>
@@ -176,10 +171,10 @@ const updateProfile = () => {
                         </div>
                     </div>
 
-                    <div class="pt-2 flex items-center">
+                    <div class="pt-4">
                         <button
                             :disabled="form.processing"
-                            class="btn-primary w-full md:w-auto md:px-10 group"
+                            class="btn-primary w-full md:w-64"
                         >
                             <span
                                 class="flex items-center justify-center gap-2"
@@ -189,8 +184,7 @@ const updateProfile = () => {
                                         ? t("admin_profile.updating")
                                         : t("admin_profile.save")
                                 }}
-                                <span
-                                    class="material-icons-outlined text-sm group-hover:translate-x-1 transition-transform"
+                                <span class="material-icons-outlined text-base"
                                     >arrow_forward</span
                                 >
                             </span>
@@ -204,12 +198,12 @@ const updateProfile = () => {
 
 <style scoped>
 .label {
-    @apply text-[9px] font-black uppercase tracking-widest block ml-1 text-slate-500;
+    @apply text-xs font-bold uppercase tracking-wider block ml-1 text-slate-600;
 }
 .input-field {
-    @apply w-full border border-slate-200 rounded-xl py-3 px-5 text-xs font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all;
+    @apply w-full border border-slate-300 rounded-2xl py-4 px-6 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all;
 }
 .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-xl text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-indigo-200 active:scale-[0.98] disabled:opacity-50;
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl text-sm uppercase tracking-[0.1em] transition-all shadow-xl shadow-indigo-200 active:scale-[0.98] disabled:opacity-50;
 }
 </style>

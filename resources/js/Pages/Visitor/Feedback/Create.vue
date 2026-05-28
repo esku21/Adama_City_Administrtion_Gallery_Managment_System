@@ -18,8 +18,8 @@ onMounted(() => {
     if (!props.halls || props.halls.length === 0) {
         cannotFeedback.value = true;
         Swal.fire({
-            title: "Access Denied",
-            text: "Please first visit halls then can send feedback.",
+            title: t("visitor_feedback.lock_title"),
+            text: t("visitor_feedback.lock_text"),
             icon: "warning",
             confirmButtonColor: "#4f46e5",
             allowOutsideClick: false,
@@ -109,8 +109,8 @@ const processImage = (file) => {
 const onFileChange = async (e) => {
     if (cannotFeedback.value) {
         Swal.fire(
-            "Error",
-            "Please first visit halls then can send feedback.",
+            t("visitor_feedback.error_title"),
+            t("visitor_feedback.lock_text"),
             "error",
         );
         return;
@@ -121,8 +121,8 @@ const onFileChange = async (e) => {
 
     if (files.length + form.images.length > 3) {
         Swal.fire(
-            "Error",
-            "You can only upload a maximum of 3 images",
+            t("visitor_feedback.error_title"),
+            t("visitor_feedback.error_max_images"),
             "error",
         );
         return;
@@ -131,8 +131,8 @@ const onFileChange = async (e) => {
     for (const file of files) {
         if (!allowedTypes.includes(file.type)) {
             Swal.fire(
-                "Error",
-                `${file.name} is not a supported format.`,
+                t("visitor_feedback.error_title"),
+                `${file.name} ${t("visitor_feedback.error_format")}`,
                 "error",
             );
             continue;
@@ -140,8 +140,8 @@ const onFileChange = async (e) => {
 
         if (file.size > 3 * 1024 * 1024) {
             Swal.fire(
-                "Error",
-                `${file.name} is too large. Max size is 3MB.`,
+                t("visitor_feedback.error_title"),
+                `${file.name} ${t("visitor_feedback.error_size")}`,
                 "error",
             );
             continue;
@@ -162,8 +162,8 @@ const removeImage = (index) => {
 const submit = () => {
     if (cannotFeedback.value) {
         Swal.fire(
-            "Error",
-            "Please first visit halls then can send feedback.",
+            t("visitor_feedback.error_title"),
+            t("visitor_feedback.lock_text"),
             "error",
         );
         return;
@@ -182,8 +182,8 @@ const submit = () => {
         !hasVowels
     ) {
         Swal.fire({
-            title: t("feedback.error_gibberish_title"),
-            text: t("feedback.error_gibberish_text"),
+            title: t("visitor_feedback.error_gibberish_title"),
+            text: t("visitor_feedback.error_gibberish_text"),
             icon: "error",
             confirmButtonColor: "#4f46e5",
         });
@@ -195,8 +195,8 @@ const submit = () => {
         preserveScroll: true,
         onSuccess: () => {
             Swal.fire({
-                title: t("feedback.success_title"),
-                text: t("feedback.success_text"),
+                title: t("visitor_feedback.success_title"),
+                text: t("visitor_feedback.success_text"),
                 icon: "success",
                 confirmButtonColor: "#4f46e5",
             });
@@ -209,10 +209,10 @@ const submit = () => {
 </script>
 
 <template>
-    <Head :title="$t('feedback.title')" />
+    <Head :title="$t('visitor_feedback.title')" />
 
     <VisitorLayout>
-        <template #header>{{ $t("feedback.header") }}</template>
+        <template #header>{{ $t("visitor_feedback.header") }}</template>
 
         <div class="max-w-4xl mx-auto px-4 pb-10">
             <div
@@ -227,16 +227,16 @@ const submit = () => {
                     >
                         <span class="text-4xl">⚠️</span>
                         <h3 class="text-base font-bold text-slate-800 mt-2">
-                            Feedback Locked
+                            {{ $t("visitor_feedback.lock_title") }}
                         </h3>
                         <p class="text-xs text-slate-500 mt-1">
-                            Please first visit halls then can send feedback.
+                            {{ $t("visitor_feedback.lock_text") }}
                         </p>
                         <Link
                             :href="route('visitor.dashboard')"
                             class="mt-4 inline-block px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase transition-all hover:bg-indigo-700 shadow-md"
                         >
-                            Return to Dashboard
+                            {{ $t("visitor_feedback.btn_dashboard") }}
                         </Link>
                     </div>
                 </div>
@@ -256,7 +256,7 @@ const submit = () => {
                                     : 'text-slate-600 hover:text-slate-800'
                             "
                         >
-                            {{ $t("General Feedback") }}
+                            {{ $t("visitor_feedback.type_general") }}
                         </button>
                         <button
                             @click="form.type = 'hall'"
@@ -269,7 +269,7 @@ const submit = () => {
                                     : 'text-slate-600 hover:text-slate-800'
                             "
                         >
-                            {{ $t("feedback.type_hall") }}
+                            {{ $t("visitor_feedback.type_hall") }}
                         </button>
                     </div>
                 </div>
@@ -280,7 +280,7 @@ const submit = () => {
                             <label
                                 class="text-[11px] font-bold uppercase text-slate-500 tracking-widest ml-1"
                             >
-                                {{ $t("feedback.label_hall") }}
+                                {{ $t("visitor_feedback.label_hall") }}
                             </label>
                             <select
                                 v-model="form.hall_id"
@@ -291,7 +291,9 @@ const submit = () => {
                                 }"
                             >
                                 <option value="">
-                                    {{ $t("feedback.placeholder_hall") }}
+                                    {{
+                                        $t("visitor_feedback.placeholder_hall")
+                                    }}
                                 </option>
                                 <option
                                     v-for="hall in halls"
@@ -312,7 +314,7 @@ const submit = () => {
                             <label
                                 class="text-[11px] font-bold uppercase text-slate-500 tracking-widest ml-1"
                             >
-                                {{ $t("feedback.label_subject") }}
+                                {{ $t("visitor_feedback.label_subject") }}
                             </label>
                             <input
                                 v-model="form.subject"
@@ -320,7 +322,7 @@ const submit = () => {
                                 :disabled="cannotFeedback"
                                 class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500"
                                 :placeholder="
-                                    $t('feedback.placeholder_subject')
+                                    $t('visitor_feedback.placeholder_subject')
                                 "
                                 :class="{
                                     'ring-2 ring-red-500': form.errors.subject,
@@ -335,19 +337,28 @@ const submit = () => {
                         <div class="space-y-2">
                             <label
                                 class="text-[11px] font-bold uppercase text-indigo-600 tracking-widest ml-1"
-                                >Experience Category</label
                             >
+                                {{ $t("visitor_feedback.label_sentiment") }}
+                            </label>
                             <select
                                 v-model="form.sentiment"
                                 :disabled="cannotFeedback"
                                 class="w-full bg-white border-slate-200 rounded-xl p-3 font-semibold text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500"
                             >
                                 <option value="Satisfaction">
-                                    Satisfaction
+                                    {{
+                                        $t("visitor_feedback.opt_satisfaction")
+                                    }}
                                 </option>
-                                <option value="Neutral">Neutral</option>
+                                <option value="Neutral">
+                                    {{ $t("visitor_feedback.opt_neutral") }}
+                                </option>
                                 <option value="Unsatisfactory">
-                                    Unsatisfactory
+                                    {{
+                                        $t(
+                                            "visitor_feedback.opt_unsatisfactory",
+                                        )
+                                    }}
                                 </option>
                             </select>
                         </div>
@@ -357,8 +368,9 @@ const submit = () => {
                         >
                             <span
                                 class="text-[11px] font-bold uppercase text-slate-400 tracking-widest mb-2"
-                                >Visual Rating</span
                             >
+                                {{ $t("visitor_feedback.label_rating") }}
+                            </span>
                             <div class="flex gap-1.5">
                                 <button
                                     v-for="i in 5"
@@ -382,8 +394,9 @@ const submit = () => {
                     <div class="space-y-2">
                         <label
                             class="text-[11px] font-bold uppercase text-slate-500 tracking-widest ml-1"
-                            >{{ $t("feedback.label_message") }}</label
                         >
+                            {{ $t("visitor_feedback.label_message") }}
+                        </label>
                         <textarea
                             v-model="form.message"
                             rows="5"
@@ -393,7 +406,9 @@ const submit = () => {
                                 'ring-2 ring-red-500 bg-red-50/30':
                                     form.errors.message,
                             }"
-                            :placeholder="$t('feedback.placeholder_message')"
+                            :placeholder="
+                                $t('visitor_feedback.placeholder_message')
+                            "
                         ></textarea>
                     </div>
 
@@ -452,14 +467,15 @@ const submit = () => {
                                     <div
                                         class="px-4 py-2.5 bg-slate-100 rounded-lg text-[11px] font-bold uppercase text-slate-700 hover:bg-slate-200 transition-colors border border-slate-200 shadow-sm"
                                     >
-                                        {{ $t("feedback.btn_add_photo") }} ({{
-                                            form.images.length
-                                        }}/3)
+                                        {{
+                                            $t("visitor_feedback.btn_add_photo")
+                                        }}
+                                        ({{ form.images.length }}/3)
                                     </div>
                                 </div>
-                                <span class="text-[10px] text-slate-400 italic"
-                                    >Max 3MB, JPG/PNG/WEBP</span
-                                >
+                                <span class="text-[10px] text-slate-400 italic">
+                                    {{ $t("visitor_feedback.upload_hint") }}
+                                </span>
                             </div>
 
                             <div class="flex items-center gap-8">
@@ -467,7 +483,7 @@ const submit = () => {
                                     :href="route('visitor.dashboard')"
                                     class="text-[11px] font-bold uppercase text-slate-400 hover:text-red-500 transition-colors"
                                 >
-                                    {{ $t("feedback.btn_cancel") }}
+                                    {{ $t("visitor_feedback.btn_cancel") }}
                                 </Link>
                                 <button
                                     type="submit"
@@ -478,8 +494,8 @@ const submit = () => {
                                 >
                                     {{
                                         form.processing
-                                            ? $t("feedback.sending")
-                                            : $t("feedback.btn_submit")
+                                            ? $t("visitor_feedback.sending")
+                                            : $t("visitor_feedback.btn_submit")
                                     }}
                                 </button>
                             </div>

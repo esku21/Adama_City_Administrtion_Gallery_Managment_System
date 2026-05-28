@@ -54,11 +54,11 @@ class GuideController extends Controller
         ];
 
         $bookings = (clone $hallBookings)
-            ->with(['halls']) // ✅ Changed to plural relation 'halls' if your Booking model uses 'halls' relationship
+            ->with(['halls', 'user']) 
             ->whereDate('booking_date', '>=', $today) 
             ->orderBy('booking_date', 'asc')
             ->get()
-            ->map(function ($booking) use ($timeMapping) {
+            ->map(function ($booking) {
                 return [
                     'id'            => $booking->id,
                     'visitor_name'  => $booking->visitor_name ?? 'Unnamed Visitor',
@@ -67,9 +67,14 @@ class GuideController extends Controller
                     'booking_date'  => $booking->booking_date instanceof Carbon 
                                         ? $booking->booking_date->toDateString() 
                                         : $booking->booking_date,
-                    // ✅ FIXED: Pluralized to grab the first hall name out of the collection if multiple exist
                     'hall_names'    => $booking->halls->first()->name ?? 'Station Hall', 
-                    'readable_slot' => $timeMapping[strtolower($booking->slot_id)] ?? ($booking->slot_id ?? 'N/A'), 
+                    'readable_slot' => $booking->readable_slot,
+                    'user'          => $booking->user ? [
+                        'id' => $booking->user->id,
+                        'firstName' => $booking->user->firstName,
+                        'lastName' => $booking->user->lastName,
+                        'email' => $booking->user->email,
+                    ] : null,
                 ];
             });
 

@@ -5,7 +5,7 @@ import Swal from "sweetalert2";
 import VisitorLayout from "@/Layouts/VisitorLayout.vue";
 import { useI18n } from "vue-i18n";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const form = useForm({
     current_password: "",
@@ -19,8 +19,8 @@ const submit = () => {
         onSuccess: () => {
             form.reset();
             Swal.fire({
-                title: t("security.success_title"),
-                text: t("security.success_text"),
+                title: t("visitor_settings.success_title"),
+                text: t("visitor_settings.success_text"),
                 icon: "success",
                 confirmButtonColor: "#4f46e5",
                 background: "#ffffff",
@@ -40,10 +40,45 @@ const submit = () => {
 </script>
 
 <template>
-    <Head :title="$t('security.page_title')" />
+    <Head :title="$t('visitor_settings.page_title')" />
 
     <VisitorLayout>
-        <template #header>{{ $t("security.page_title") }}</template>
+        <!-- Language Switcher -->
+        <div class="max-w-3xl mx-auto mb-6 flex gap-2 justify-end">
+            <button
+                @click="locale = 'en'"
+                :class="
+                    locale === 'en'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-200'
+                "
+                class="px-3 py-1 text-xs font-bold rounded"
+            >
+                EN
+            </button>
+            <button
+                @click="locale = 'or'"
+                :class="
+                    locale === 'or'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-200'
+                "
+                class="px-3 py-1 text-xs font-bold rounded"
+            >
+                OR
+            </button>
+            <button
+                @click="locale = 'am'"
+                :class="
+                    locale === 'am'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-200'
+                "
+                class="px-3 py-1 text-xs font-bold rounded"
+            >
+                AM
+            </button>
+        </div>
 
         <div class="max-w-3xl mx-auto pb-20 animate-in">
             <div class="mb-8 flex items-center justify-between">
@@ -51,10 +86,10 @@ const submit = () => {
                     <h1
                         class="text-3xl font-black text-slate-900 tracking-tight"
                     >
-                        {{ $t("security.title") }}
+                        {{ $t("visitor_settings.title") }}
                     </h1>
                     <p class="text-slate-500 font-medium mt-1 text-sm">
-                        {{ $t("security.subtitle") }}
+                        {{ $t("visitor_settings.subtitle") }}
                     </p>
                 </div>
                 <div class="hidden md:block">
@@ -67,119 +102,81 @@ const submit = () => {
             >
                 <div class="p-8 md:p-12">
                     <form @submit.prevent="submit" class="space-y-10">
+                        <!-- Current Password -->
                         <div class="relative">
-                            <div class="flex items-center justify-between mb-3">
-                                <label
-                                    class="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest"
-                                >
-                                    <KeyRound
-                                        class="w-3.5 h-3.5 text-indigo-500"
-                                    />
-                                    {{ $t("security.current_password") }}
-                                </label>
-                            </div>
-                            <div class="relative group">
-                                <input
-                                    type="password"
-                                    v-model="form.current_password"
-                                    class="w-full bg-slate-50 border-slate-200 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all font-semibold placeholder:text-slate-300"
-                                    :placeholder="
-                                        $t('security.placeholder_current')
-                                    "
-                                    :class="{
-                                        'border-red-400 bg-red-50/30':
-                                            form.errors.current_password,
-                                    }"
-                                />
-                                <div
-                                    class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-400 transition-colors"
-                                >
-                                    <Lock class="w-5 h-5" />
-                                </div>
-                            </div>
-                            <Transition name="slide-fade">
-                                <p
-                                    v-if="form.errors.current_password"
-                                    class="text-red-500 text-[11px] mt-2 font-bold flex items-center gap-1 ml-1"
-                                >
-                                    <span
-                                        class="w-1 h-1 bg-red-500 rounded-full"
-                                    ></span>
-                                    {{ form.errors.current_password }}
-                                </p>
-                            </Transition>
+                            <label
+                                class="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3"
+                            >
+                                <KeyRound class="w-3.5 h-3.5 text-indigo-500" />
+                                {{ $t("visitor_settings.current_password") }}
+                            </label>
+                            <input
+                                type="password"
+                                v-model="form.current_password"
+                                class="w-full bg-slate-50 border-slate-200 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all font-semibold"
+                                :placeholder="
+                                    $t('visitor_settings.placeholder_current')
+                                "
+                            />
                         </div>
 
+                        <!-- New Password Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="relative">
+                            <div>
                                 <label
                                     class="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3"
                                 >
                                     <EyeOff
                                         class="w-3.5 h-3.5 text-indigo-500"
                                     />
-                                    {{ $t("security.new_password") }}
+                                    {{ $t("visitor_settings.new_password") }}
                                 </label>
                                 <input
                                     type="password"
                                     v-model="form.password"
-                                    class="w-full bg-slate-50 border-slate-200 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all font-semibold placeholder:text-slate-300"
+                                    class="w-full bg-slate-50 border-slate-200 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all font-semibold"
                                     :placeholder="
-                                        $t('security.placeholder_new')
+                                        $t('visitor_settings.placeholder_new')
                                     "
-                                    :class="{
-                                        'border-red-400 bg-red-50/30':
-                                            form.errors.password,
-                                    }"
                                 />
                             </div>
-
-                            <div class="relative">
+                            <div>
                                 <label
                                     class="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3"
                                 >
-                                    {{ $t("security.confirm_password") }}
+                                    {{
+                                        $t("visitor_settings.confirm_password")
+                                    }}
                                 </label>
                                 <input
                                     type="password"
                                     v-model="form.password_confirmation"
-                                    class="w-full bg-slate-50 border-slate-200 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all font-semibold placeholder:text-slate-300"
+                                    class="w-full bg-slate-50 border-slate-200 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 transition-all font-semibold"
                                     :placeholder="
-                                        $t('security.placeholder_confirm')
+                                        $t(
+                                            'visitor_settings.placeholder_confirm',
+                                        )
                                     "
                                 />
                             </div>
                         </div>
 
-                        <Transition name="slide-fade">
-                            <p
-                                v-if="form.errors.password"
-                                class="text-red-500 text-[11px] font-bold flex items-center gap-1 ml-1 -mt-4"
-                            >
-                                <span
-                                    class="w-1 h-1 bg-red-500 rounded-full"
-                                ></span>
-                                {{ form.errors.password }}
-                            </p>
-                        </Transition>
-
                         <div
-                            class="pt-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4"
+                            class="pt-6 border-t border-slate-100 flex items-center justify-between"
                         >
                             <div class="text-[11px] text-slate-400 font-medium">
-                                {{ $t("security.footer_note") }}
+                                {{ $t("visitor_settings.footer_note") }}
                             </div>
                             <button
                                 type="submit"
                                 :disabled="form.processing"
-                                class="w-full md:w-auto px-10 py-4 bg-indigo-600 text-white rounded-[1.2rem] font-black uppercase text-[11px] tracking-[0.15em] transition-all shadow-xl shadow-indigo-200/50 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                                class="px-10 py-4 bg-indigo-600 text-white rounded-[1.2rem] font-black uppercase text-[11px] tracking-[0.15em] transition-all hover:bg-indigo-700 disabled:opacity-50"
                             >
-                                <span v-if="form.processing">{{
-                                    $t("security.btn_processing")
-                                }}</span>
-                                <span v-else>{{
-                                    $t("security.btn_update")
-                                }}</span>
+                                {{
+                                    form.processing
+                                        ? $t("visitor_settings.btn_processing")
+                                        : $t("visitor_settings.btn_update")
+                                }}
                             </button>
                         </div>
                     </form>
@@ -188,26 +185,3 @@ const submit = () => {
         </div>
     </VisitorLayout>
 </template>
-
-<style scoped>
-.animate-in {
-    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-.slide-fade-enter-active {
-    transition: all 0.3s ease-out;
-}
-.slide-fade-enter-from {
-    transform: translateY(-5px);
-    opacity: 0;
-}
-</style>

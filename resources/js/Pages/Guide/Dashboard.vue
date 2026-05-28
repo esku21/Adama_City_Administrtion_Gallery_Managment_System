@@ -15,7 +15,6 @@ const props = defineProps({
     },
 });
 
-// Ensures we can handle both paginated data and simple arrays
 const bookingList = computed(() => {
     if (Array.isArray(props.bookings)) return props.bookings;
     return props.bookings?.data ?? [];
@@ -23,24 +22,18 @@ const bookingList = computed(() => {
 
 const updateStatus = (id, newStatus) => {
     if (!id) return;
-
-    // Translation-ready confirmation dialog
     if (confirm(t("guide_dashboard.confirm_status", { status: newStatus }))) {
         router.patch(
             route("guide.bookings.update", id),
             { status: newStatus },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    // Success logic can be added here (e.g., Toast notifications)
-                },
-            },
+            { preserveScroll: true },
         );
     }
 };
 
 const getStatusClass = (status) => {
-    switch (status?.toLowerCase()) {
+    const s = status?.toLowerCase() || "";
+    switch (s) {
         case "arrived":
             return "bg-green-100 text-green-700 border-green-200";
         case "off-schedule":
@@ -59,7 +52,7 @@ const getStatusClass = (status) => {
 </script>
 
 <template>
-    <Head :title="$t('guide_nav.management')" />
+    <Head :title="t('guide_nav.management')" />
 
     <GuideLayout>
         <template #header>
@@ -69,102 +62,57 @@ const getStatusClass = (status) => {
                 <h2
                     class="font-bold text-2xl sm:text-3xl text-gray-800 leading-tight"
                 >
-                    {{ hallName || $t("guide_nav.no_hall") }} —
-                    {{ $t("guide_dashboard.monitor_portal") }}
+                    {{ hallName || t("guide_nav.no_hall") }} —
+                    {{ t("guide_dashboard.monitor_portal") }}
                 </h2>
                 <Link
                     :href="route('guide.scanner')"
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center gap-2 active:scale-95"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center gap-2"
                 >
-                    <span>📷</span> {{ $t("guide_dashboard.open_scanner") }}
+                    <span>📷</span> {{ t("guide_dashboard.open_scanner") }}
                 </Link>
             </div>
         </template>
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div
                         class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
                     >
                         <div
                             class="bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-xl text-white relative overflow-hidden h-full"
                         >
-                            <div class="relative z-10">
-                                <p
-                                    class="text-xs font-black uppercase tracking-tighter opacity-80"
-                                >
-                                    {{ $t("guide_dashboard.total_bookings") }}
-                                </p>
-                                <p class="text-4xl font-black mt-2">
-                                    {{ stats?.total_bookings ?? 0 }}
-                                </p>
-                                <p
-                                    class="text-[10px] mt-2 font-medium opacity-70"
-                                >
-                                    {{ $t("guide_dashboard.total_desc") }}
-                                </p>
-                            </div>
-                            <span
-                                class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"
-                                >📊</span
+                            <p
+                                class="text-xs font-black uppercase tracking-tighter opacity-80"
                             >
+                                {{ t("guide_dashboard.total_bookings") }}
+                            </p>
+                            <p class="text-4xl font-black mt-2">
+                                {{ stats?.total_bookings ?? 0 }}
+                            </p>
+                            <p class="text-[10px] mt-2 font-medium opacity-70">
+                                {{ t("guide_dashboard.total_desc") }}
+                            </p>
                         </div>
                     </div>
-
-                    <div
-                        class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
-                    >
-                        <div
-                            class="bg-gradient-to-br from-orange-400 to-orange-600 p-6 rounded-xl text-white relative overflow-hidden h-full"
-                        >
-                            <div class="relative z-10">
-                                <p
-                                    class="text-xs font-black uppercase tracking-tighter opacity-80"
-                                >
-                                    {{ $t("guide_dashboard.pending_today") }}
-                                </p>
-                                <p class="text-4xl font-black mt-2">
-                                    {{ stats?.pending_today ?? 0 }}
-                                </p>
-                                <p
-                                    class="text-[10px] mt-2 font-medium opacity-70"
-                                >
-                                    {{ $t("guide_dashboard.pending_desc") }}
-                                </p>
-                            </div>
-                            <span
-                                class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"
-                                >⏳</span
-                            >
-                        </div>
-                    </div>
-
                     <div
                         class="bg-white p-1 rounded-2xl shadow-sm border border-gray-100"
                     >
                         <div
                             class="bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 rounded-xl text-white relative overflow-hidden h-full"
                         >
-                            <div class="relative z-10">
-                                <p
-                                    class="text-xs font-black uppercase tracking-tighter opacity-80"
-                                >
-                                    {{ $t("guide_dashboard.arrived_today") }}
-                                </p>
-                                <p class="text-4xl font-black mt-2">
-                                    {{ stats?.arrived_today ?? 0 }}
-                                </p>
-                                <p
-                                    class="text-[10px] mt-2 font-medium opacity-70"
-                                >
-                                    {{ $t("guide_dashboard.arrived_desc") }}
-                                </p>
-                            </div>
-                            <span
-                                class="absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"
-                                >✅</span
+                            <p
+                                class="text-xs font-black uppercase tracking-tighter opacity-80"
                             >
+                                {{ t("guide_dashboard.arrived_today") }}
+                            </p>
+                            <p class="text-4xl font-black mt-2">
+                                {{ stats?.arrived_today ?? 0 }}
+                            </p>
+                            <p class="text-[10px] mt-2 font-medium opacity-70">
+                                {{ t("guide_dashboard.arrived_desc") }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -173,152 +121,118 @@ const getStatusClass = (status) => {
                     class="bg-white shadow-xl sm:rounded-3xl border border-gray-100 overflow-hidden"
                 >
                     <div class="p-8">
-                        <div class="flex items-center justify-between mb-6">
-                            <h3
-                                class="font-black text-xl text-gray-800 uppercase tracking-tight"
-                            >
-                                {{ $t("guide_dashboard.live_log") }}
-                            </h3>
-                            <span
-                                class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full border border-indigo-100"
-                            >
-                                {{ $t("guide_dashboard.live_monitoring") }}
-                            </span>
-                        </div>
-
-                        <div class="overflow-x-auto">
-                            <table
-                                class="w-full text-left border-separate border-spacing-y-3"
-                            >
-                                <thead>
-                                    <tr
-                                        class="text-gray-400 text-[10px] uppercase font-black tracking-widest"
+                        <h3
+                            class="font-black text-xl text-gray-800 uppercase tracking-tight mb-6"
+                        >
+                            {{ t("guide_dashboard.live_log") }}
+                        </h3>
+                        <table
+                            class="w-full text-left border-separate border-spacing-y-3"
+                        >
+                            <thead>
+                                <tr
+                                    class="text-gray-400 text-[10px] uppercase font-black tracking-widest"
+                                >
+                                    <th class="px-6 py-3">Name</th>
+                                    <th class="px-6 py-3 text-center">
+                                        {{ t("guide_dashboard.table_type") }}
+                                    </th>
+                                    <th class="px-6 py-3 text-center">
+                                        {{ t("guide_dashboard.table_slot") }}
+                                    </th>
+                                    <th class="px-6 py-3 text-center">Date</th>
+                                    <th class="px-6 py-3 text-center">
+                                        {{ t("guide_dashboard.table_status") }}
+                                    </th>
+                                    <th class="px-6 py-3 text-right">
+                                        {{ t("guide_dashboard.table_actions") }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="booking in bookingList"
+                                    :key="booking.id"
+                                    class="bg-gray-50 hover:bg-gray-100"
+                                >
+                                    <td
+                                        class="px-6 py-4 rounded-l-2xl font-bold"
                                     >
-                                        <th class="px-6 py-3">
-                                            {{
-                                                $t(
-                                                    "guide_dashboard.table_visitor",
-                                                )
-                                            }}
-                                        </th>
-                                        <th class="px-6 py-3 text-center">
-                                            {{
-                                                $t("guide_dashboard.table_type")
-                                            }}
-                                        </th>
-                                        <th class="px-6 py-3 text-center">
-                                            {{
-                                                $t("guide_dashboard.table_slot")
-                                            }}
-                                        </th>
-                                        <th class="px-6 py-3 text-center">
-                                            {{
-                                                $t(
-                                                    "guide_dashboard.table_status",
-                                                )
-                                            }}
-                                        </th>
-                                        <th class="px-6 py-3 text-right">
-                                            {{
-                                                $t(
-                                                    "guide_dashboard.table_actions",
-                                                )
-                                            }}
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="booking in bookingList"
-                                        :key="booking.id"
-                                        class="bg-gray-50 hover:bg-gray-100 transition-colors"
+                                        {{
+                                            booking.user?.firstName
+                                                ? booking.user.firstName +
+                                                  " " +
+                                                  booking.user.lastName
+                                                : booking.visitor_name
+                                        }}
+                                    </td>
+                                    <td class="px-6 py-4 text-center text-xs">
+                                        {{ booking.visitor_type }}
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 text-center text-sm font-bold"
                                     >
-                                        <td class="px-6 py-4 rounded-l-2xl">
-                                            <div
-                                                class="font-bold text-gray-900"
-                                            >
-                                                {{
-                                                    booking.user?.name ||
-                                                    "Visitor"
-                                                }}
-                                            </div>
-                                            <div class="text-xs text-gray-500">
-                                                {{ booking.user?.email }}
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-center">
-                                            <span
-                                                class="text-xs font-medium px-2 py-1 bg-white border rounded-lg text-gray-600"
-                                            >
-                                                {{ booking.visitor_type }}
-                                            </span>
-                                        </td>
-                                        <td
-                                            class="px-6 py-4 text-center text-sm font-bold text-gray-600"
-                                        >
-                                            {{ booking.visit_slot }}
-                                        </td>
-                                        <td class="px-6 py-4 text-center">
-                                            <span
-                                                :class="
-                                                    getStatusClass(
-                                                        booking.status,
-                                                    )
-                                                "
-                                                class="px-3 py-1 rounded-full text-[10px] font-black border uppercase"
-                                            >
-                                                {{ booking.status }}
-                                            </span>
-                                        </td>
-                                        <td
-                                            class="px-6 py-4 text-right rounded-r-2xl space-x-2"
-                                        >
-                                            <button
-                                                v-if="
-                                                    booking.status !== 'arrived'
-                                                "
-                                                @click="
-                                                    updateStatus(
-                                                        booking.id,
-                                                        'arrived',
-                                                    )
-                                                "
-                                                class="text-[10px] font-bold bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors"
-                                            >
-                                                {{ $t("Arrived") }}
-                                            </button>
-                                            <button
-                                                v-if="
-                                                    booking.status ===
-                                                        'pending' ||
-                                                    booking.status ===
-                                                        'approved'
-                                                "
-                                                @click="
-                                                    updateStatus(
-                                                        booking.id,
-                                                        'no-show',
-                                                    )
-                                                "
-                                                class="text-[10px] font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
-                                            >
-                                                {{ $t("NoShow") }}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="bookingList.length === 0">
-                                        <td
-                                            colspan="5"
-                                            class="px-6 py-10 text-center text-gray-400 italic"
+                                        {{ booking.readable_slot }}
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 text-center text-sm font-bold"
+                                    >
+                                        {{ booking.booking_date }}
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span
+                                            :class="
+                                                getStatusClass(booking.status)
+                                            "
+                                            class="px-3 py-1 rounded-full text-[10px] font-black border uppercase"
                                         >
                                             {{
-                                                $t("guide_dashboard.empty_log")
+                                                t(
+                                                    `statuses.${booking.status.toLowerCase()}`,
+                                                )
                                             }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                                        </span>
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 text-right rounded-r-2xl space-x-2"
+                                    >
+                                        <button
+                                            v-if="booking.status === 'approved'"
+                                            @click="
+                                                updateStatus(
+                                                    booking.id,
+                                                    'arrived',
+                                                )
+                                            "
+                                            class="text-[10px] font-bold bg-emerald-600 text-white px-3 py-1.5 rounded-lg"
+                                        >
+                                            {{
+                                                t("guide_dashboard.btn_arrived")
+                                            }}
+                                        </button>
+                                        <button
+                                            v-if="
+                                                [
+                                                    'pending',
+                                                    'approved',
+                                                ].includes(booking.status)
+                                            "
+                                            @click="
+                                                updateStatus(
+                                                    booking.id,
+                                                    'no-show',
+                                                )
+                                            "
+                                            class="text-[10px] font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded-lg"
+                                        >
+                                            {{
+                                                t("guide_dashboard.btn_no_show")
+                                            }}
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

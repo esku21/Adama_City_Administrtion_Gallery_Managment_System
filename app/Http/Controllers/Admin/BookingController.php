@@ -16,26 +16,10 @@ use Inertia\Response;
 
 class BookingController extends Controller
 {
-    /**
-     * Display the Admin Registry with functional document links
-     */
     public function index(): Response
     {
-        // ✅ FIXED: Changed singular 'hall' relation to plural 'halls' to match your model relationship
-        $bookings = Booking::with(['halls', 'user'])
-            ->latest()
-            ->get()
-            ->map(function ($booking) {
-                // Generates the public URL for the frontend.
-                $booking->attachment_url = ($booking->attachment && Storage::disk('public')->exists($booking->attachment)) 
-                    ? asset('storage/' . $booking->attachment) 
-                    : null;
-                
-                // ✅ FIXED: Append a safe fallback 'hall_id' string or object value for your Vue components
-                $booking->hall_id = $booking->halls->first()->id ?? null;
-                
-                return $booking;
-            });
+        // Eloquent automatically includes 'readable_slot' (from $appends in Model)
+        $bookings = Booking::with(['halls', 'user'])->latest()->get();
 
         return Inertia::render('Admin/Bookings', [
             'bookings' => $bookings,
@@ -43,25 +27,23 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * Store a manually created booking
-     */
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'visitor_name'       => 'required|string|max:255',
             'booking_date'       => 'required|date',
+            'slot_id'            => 'required|string', // Added validation for slot
             'number_of_visitors' => 'required|integer|min:1',
-            'status'             => 'required|string|in:pending,approved,confirmed,cancelled,rejected,extended,completed',
+            'status'             => 'required|string|in:pending,approved,confirmed,cancelled,rejected,completed,arrived,no-show',
             'hall_id'            => 'required|exists:halls,id',
         ]);
 
         try {
-            // ✅ FIXED: Remove hall_id from the direct Booking field creation mapping
             $booking = Booking::create([
                 'user_id'            => auth()->id(), 
                 'visitor_name'       => $validated['visitor_name'],
                 'booking_date'       => $validated['booking_date'],
+                'slot_id'            => $validated['slot_id'], // Added slot_id
                 'number_of_visitors' => $validated['number_of_visitors'],
                 'status'             => strtolower($validated['status']),
                 'visitor_category'   => 'Normal',
@@ -69,7 +51,6 @@ class BookingController extends Controller
                 'qr_token'           => 'ACAGMS-ADM-' . strtoupper(Str::random(8)),
             ]);
 
-            // ✅ FIXED: Attach the selected hall to the many-to-many pivot table layout
             $booking->halls()->sync([$validated['hall_id']]);
 
             return back()->with('success', 'Manual booking authorized successfully.');
@@ -79,33 +60,25 @@ class BookingController extends Controller
         }
     }
 
-    /**
-     * Update existing booking record
-     */
     public function update(Request $request, Booking $booking): RedirectResponse
     {
+        if (in_array($booking->status, ['arrived', 'no-show'])) {
+            return back()->withErrors(['error' => 'This booking status is finalized and cannot be modified.']);
+        }
+
         $validated = $request->validate([
-            'visitor_name'       => 'required|string|max:255',
-            'booking_date'       => 'required|date',
-            'number_of_visitors' => 'required|integer|min:1',
-            'status'             => 'required|string|in:pending,approved,confirmed,cancelled,rejected,extended,completed',
-            'hall_id'            => 'required|exists:halls,id',
-            'reschedule_date'    => 'nullable|date',
+            'status'          => 'sometimes|required|string|in:pending,approved,confirmed,cancelled,rejected,completed,arrived,no-show',
+            'reschedule_date' => 'nullable|date',
         ]);
 
         try {
-            // ✅ FIXED: Isolate hall_id so it does not update straight into the bookings column structure
-            $hallId = $validated['hall_id'];
-            unset($validated['hall_id']);
+            if (isset($validated['status'])) {
+                $booking->status = strtolower($validated['status']);
+            }
 
-            // Update local booking data fields safely
-            $booking->update($validated);
+            $booking->save();
 
-            // ✅ FIXED: Sync the relationship updates cleanly over the pivot bridge
-            $booking->halls()->sync([$hallId]);
-
-            // Handle rejection announcements if a reschedule date is provided
-            if ($booking->status === 'rejected' && $request->reschedule_date) {
+            if (isset($validated['status']) && $validated['status'] === 'rejected' && $request->reschedule_date) {
                 Announcement::create([
                     'user_id'         => $booking->user_id,
                     'title'           => 'Booking Reschedule Offered',
@@ -122,20 +95,13 @@ class BookingController extends Controller
         }
     }
 
-    /**
-     * Delete record and associated file from storage
-     */
     public function destroy(Booking $booking): RedirectResponse
     {
         try {
-            // Check for file in the 'public' disk and delete it to save space
             if ($booking->attachment && Storage::disk('public')->exists($booking->attachment)) {
                 Storage::disk('public')->delete($booking->attachment);
             }
-
-            // ✅ FIXED: Safely sever pivot references before execution to avoid dangling database table items
             $booking->halls()->detach();
-
             $booking->delete();
             return back()->with('success', 'Record and file purged successfully.');
         } catch (\Exception $e) {
